@@ -927,3 +927,33 @@ export const TEMPLATES = [
 ];
 
 export const SAMPLE_PLAN = TEMPLATES.find((tpl) => tpl.id === 'u7-60');
+
+/**
+ * The club's own sessions, given to every phone once while the club runs without
+ * login (CLUB_MODE off). They keep their ids, so a phone that already has one is
+ * not given a second copy, and a coach who deletes one does not get it back.
+ * The same sessions are in the club database for when login is switched on.
+ */
+export const CLUB_PLANS = [
+  {
+    id: 'mwlzho6guwhzn',
+    name: 'Primul antrenament',
+    team: 'U7',
+    date: '2026-11-18',
+    target: 60,
+    focus: 'Warm up + check',
+    notes: '',
+    blocks: [
+      { id: 'mwlzihc9dhwyq', activityId: 'muscle-warmup', duration: 3, note: '' },
+      { id: 'mwlzijtm4e6oo', activityId: 'free-dribble', duration: 2, note: '' },
+      { id: 'mwlzjborw6fxz', activityId: 'gate-dribble', duration: 5, note: '' },
+      { id: 'mwlzis2nhn3rm', activityId: 'gate-passing', duration: 5, note: '' },
+      { id: 'mwlzitl3n5vyw', activityId: 'sharks-minnows', duration: 6, note: '' },
+      { id: 'mwlzixe748rdx', activityId: 'clean-garden', duration: 5, note: '' },
+      { id: 'mwlzj2zxvh90c', activityId: 'goal-attack', duration: 5, note: '' },
+      { id: 'mwm2qe0duri3z', activityId: '5v5-keepers', duration: 25, note: '' },
+    ],
+    createdAt: 1794998045608,
+    updatedAt: 1795003499026,
+  },
+];

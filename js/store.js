@@ -1,6 +1,6 @@
 // App data: plans, custom activities, players, notes and session runs.
 // Saved to localStorage on this device. Pure helpers are exported for tests.
-import { LIBRARY, SAMPLE_PLAN, TEMPLATES, ageOf, skillText } from './library.js';
+import { LIBRARY, SAMPLE_PLAN, TEMPLATES, CLUB_PLANS, ageOf, skillText } from './library.js';
 import { newTimer } from './timer.js';
 
 const KEY = 'royalclub.v1';
@@ -75,6 +75,26 @@ export function withSettings(defaults, saved) {
   return st;
 }
 
+/**
+ * Gives this phone each of the club's sessions (CLUB_PLANS) once. `clubPlans`
+ * remembers which were given, so a deleted one does not come back.
+ */
+export function addClubPlans(state) {
+  const given = new Set(state.clubPlans || []);
+  for (const plan of CLUB_PLANS) {
+    if (given.has(plan.id)) continue;
+    given.add(plan.id);
+    if (!state.plans.some((p) => p.id === plan.id)) state.plans.push(structuredClone(plan));
+  }
+  state.clubPlans = [...given];
+  return state;
+}
+
+/** Marks every club session as given, e.g. after the coach deleted all data. */
+export function clubPlanIds() {
+  return CLUB_PLANS.map((p) => p.id);
+}
+
 export function normalize(raw, lang) {
   const base = emptyState(lang);
   if (!raw || typeof raw !== 'object') return base;
@@ -112,7 +132,7 @@ export function load(lang) {
     raw = null;
   }
   const state = normalize(raw, lang);
-  return seed(state, state.settings.lang || lang);
+  return addClubPlans(seed(state, state.settings.lang || lang));
 }
 
 const SETTINGS_KEY = 'royalclub.settings.v1';

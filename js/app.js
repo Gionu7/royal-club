@@ -1794,7 +1794,7 @@ const actions = {
   'reset-all'() {
     const fresh = S.emptyState(getLang());
     Object.keys(state).forEach((k) => delete state[k]);
-    Object.assign(state, fresh, { seeded: true });
+    Object.assign(state, fresh, { seeded: true, clubPlans: S.clubPlanIds() });
     persist(true);
     ui.confirm = null;
     go('today', null, { replace: true });

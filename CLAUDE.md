@@ -23,7 +23,7 @@ In Claude cloud sessions Playwright and Chromium are preinstalled globally (`NOD
 | File | What it holds |
 |---|---|
 | `js/app.js` | All screens (functions returning HTML strings), routing, actions, permissions (`ROLE_CAN`, `NEEDS`, `can()`), live timer loop, boot |
-| `js/library.js` | Activities from the club's U7 PDF, `BASE_AGES`, skill names (`SKILL_RO`), coaching reminders by age (`tipsFor`), session `TEMPLATES` |
+| `js/library.js` | Activities from the club's U7 PDF, `BASE_AGES`, skill names (`SKILL_RO`), coaching reminders by age (`tipsFor`), session `TEMPLATES`, and `CLUB_PLANS`: the club's own sessions, given to every phone once (`addClubPlans` in `store.js`) while login is off |
 | `js/library-more.js` | Activities for U5–U6 and U8–U12 (`MORE`) |
 | `js/diagram.js`, `js/diagram-helpers.js` | Pitch diagrams drawn from data, in metres |
 | `js/timer.js` | Countdown / stopwatch / rounds maths (timestamp based), beeps, vibration |

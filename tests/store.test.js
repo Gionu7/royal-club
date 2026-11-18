@@ -154,3 +154,28 @@ test('settings saved before version 2 get the new defaults once, later choices s
   assert.equal(later.lang, 'en');
   assert.equal(later.autoStart, false);
 });
+
+import { CLUB_PLANS } from '../js/library.js';
+
+test('every phone gets the club sessions once, without duplicates', () => {
+  const ids = new Set(LIBRARY.map((a) => a.id));
+  for (const p of CLUB_PLANS) for (const b of p.blocks) assert.ok(ids.has(b.activityId), `${p.name} uses ${b.activityId}`);
+  const club = CLUB_PLANS[0];
+  // A new phone: the starter session plus the club's sessions.
+  const fresh = S.addClubPlans(S.seed(S.normalize(null, 'ro'), 'ro'));
+  assert.equal(fresh.plans.length, 1 + CLUB_PLANS.length);
+  assert.ok(fresh.plans.some((p) => p.id === club.id && p.name === 'Primul antrenament'));
+  // A phone that already has it (maybe edited): no second copy, its own version kept.
+  const mine = S.normalize({ plans: [{ ...structuredClone(club), notes: 'mine' }], seeded: true }, 'ro');
+  S.addClubPlans(mine);
+  assert.equal(mine.plans.filter((p) => p.id === club.id).length, 1);
+  assert.equal(mine.plans[0].notes, 'mine');
+  // Deleted by the coach: it does not come back.
+  S.deletePlan(fresh, club.id);
+  S.addClubPlans(fresh);
+  assert.ok(!fresh.plans.some((p) => p.id === club.id));
+  // The copy on the phone is not the shared object.
+  const other = S.addClubPlans(S.normalize(null, 'ro'));
+  other.plans[0].blocks.pop();
+  assert.equal(CLUB_PLANS[0].blocks.length, 8);
+});
