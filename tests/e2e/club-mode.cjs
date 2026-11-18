@@ -4,11 +4,11 @@
 //
 // Needs Playwright with Chromium. Run:
 //   npm start                       (in one terminal)
-//   node tests/e2e/club-mode.cjs    (in another; screenshots go to ./e2e-shots)
+//   node tests/e2e/club-mode.cjs    (in another; screenshots go to ./e2e-shots/club-mode)
 const { chromium } = require('playwright');
 const crypto = require('crypto');
 
-const OUT = process.argv[2] || require('path').join(process.cwd(), 'e2e-shots');
+const OUT = process.argv[2] || require('path').join(process.cwd(), 'e2e-shots', 'club-mode');
 require('fs').mkdirSync(OUT, { recursive: true });
 const BASE = process.env.APP_URL || 'http://localhost:8080/index.html';
 

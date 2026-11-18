@@ -5,8 +5,9 @@
 // its Project URL and its publishable ("anon") key here. Both are meant to be
 // public: what each account can see is enforced by the rules in supabase/schema.sql.
 // Never put the secret / service_role key in this file.
-export const SUPABASE_URL = '';
-export const SUPABASE_ANON_KEY = '';
+export const SUPABASE_URL = 'https://avyjgyztpxrvkpwrvbql.supabase.co';
+export const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2eWpneXp0cHhydmtwd3J2YnFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ5OTMzNzQsImV4cCI6MjExMDU2OTM3NH0.kl5E9cSb0LMEgGe2Wbyqs90vspNOcDAwqWq2IC7YjJ8';
 
 // Accounts for children or parents without an email address log in with a
 // username. Behind the scenes it becomes username@USERNAME_DOMAIN. No email is

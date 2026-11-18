@@ -70,16 +70,12 @@ You do this once. It takes about 15 minutes.
 5. **Login settings.** In **Authentication → Sign In / Providers → Email**:
    - turn **Confirm email** off, so username accounts work and new accounts can sign in straight away;
    - leave **Allow new users to sign up** on. The app creates accounts this way. Anyone who signs up on their own gets *Waiting for approval* and sees nothing until you give them a role.
-6. **Connect the app.** In **Project Settings → API Keys** (or **Data API**), copy the **Project URL** and the **publishable / anon** key. Both are safe to make public. Never use the `service_role` / secret key. In GitHub, open **Settings → Secrets and variables → Actions → Variables** and add:
-   - `SUPABASE_URL` = the Project URL
-   - `SUPABASE_ANON_KEY` = the publishable / anon key
-
-   The Pages workflow writes them into `js/config.js` when it deploys. To run club mode locally, put the same two values in `js/config.js` instead.
+6. **Connect the app.** Already done for the club's project (`avyjgyztpxrvkpwrvbql`): its Project URL and **publishable / anon** key are in `js/config.js`. Both are safe to make public. Never put the `service_role` / secret key anywhere in the app. For a different project, change those two lines, or set the GitHub repository variables `SUPABASE_URL` and `SUPABASE_ANON_KEY` (**Settings → Secrets and variables → Actions → Variables**), which the Pages workflow writes into `js/config.js` when it deploys. To run on one device only, empty both values.
 7. **Deploy and sign in.** Merge into `main` (GitHub Pages must be on, see below), open the site and sign in with your email and password.
 8. **Bring your existing data.** On the phone where you already used the app, sign in as admin and open **Settings → Upload this device's data to the club**. A backup file works too: **Settings → Restore**.
 9. **Hand out accounts** in **Settings → Manage accounts**.
 
-**Free plan notes.** Supabase pauses a free project after 7 days without use. `.github/workflows/keepalive.yml` calls the database every 3 days (using the same two variables) to prevent that. The free plan's limits (500 MB database, 50,000 monthly users) are far above what a club needs.
+**Free plan notes.** Supabase pauses a free project after 7 days without use. `.github/workflows/keepalive.yml` calls the database every 3 days (using the values in `js/config.js`) to prevent that. It reports a failure until step 2 is done. The free plan's limits (500 MB database, 50,000 monthly users) are far above what a club needs.
 
 **Forgotten passwords.** Everyone can change their own password in **Settings**. For a forgotten one: email accounts can get a reset email from **Authentication → Users** in Supabase. For a username account, delete the user there and create it again in the app (their notes stay).
 
@@ -91,7 +87,8 @@ It is a static site: plain HTML, CSS and JavaScript modules, with no build step.
 npm start          # serves on http://localhost:8080 (python3 -m http.server)
 npm test           # unit tests: timer, data store, sync, translations (Node 20+)
 npm run test:db    # database access rules, against a throwaway local Postgres
-node tests/e2e/club-mode.cjs   # admin, coach and parent in three browsers (needs Playwright and npm start)
+npm run e2e        # browser tests: one device, features, Romanian on every screen, club mode with three people
+npm run e2e:real   # the real supabase-js against the real club project
 ```
 
 Open `http://localhost:8080` on your computer, or use the computer's local IP address to open it on your phone over the same Wi-Fi.
@@ -117,6 +114,8 @@ js/cloud.js           club mode: login, accounts, syncing with Supabase
 js/sync.js            merge rules between the phone and the club database
 supabase/schema.sql   tables, roles and access rules for Supabase
 supabase/test/        access-rule tests (npm run test:db)
+tests/e2e/            browser tests (Playwright); club-mode.cjs fakes Supabase with the same rules
+CLAUDE.md, .claude/   instructions and skills for Claude working on this project
 js/i18n.js            interface text in English and Romanian
 sw.js                 offline cache
 tests/                node:test unit tests
