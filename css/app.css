@@ -2259,3 +2259,104 @@ body.in-run .toast {
     print-color-adjust: exact;
   }
 }
+
+/* ---------- club accounts ---------- */
+.sync {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background: transparent;
+  flex: none;
+}
+.sync-synced {
+  background: #4fd18b;
+}
+.sync-syncing {
+  background: var(--gold);
+}
+.sync-offline {
+  background: #9aa5c6;
+}
+.sync-error {
+  background: #ff6b5e;
+}
+.login {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding-block: 32px;
+}
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  gap: 14px;
+}
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--royal);
+}
+.login-brand .crest {
+  width: 42px;
+  height: 46px;
+}
+.login-brand .crest-shield {
+  fill: var(--royal);
+  opacity: 1;
+}
+.login-brand .crest-ball {
+  fill: #fff;
+}
+.login-brand b {
+  display: block;
+  font: 700 1.5rem/1 var(--f-display);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.login-brand small {
+  color: var(--muted);
+}
+.acc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  flex-wrap: wrap;
+}
+.acc-row .lr-main small {
+  word-break: break-all;
+}
+.role-select {
+  width: auto !important;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.role-help {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+@media (max-width: 520px) {
+  .acc-row .role-select {
+    flex: 1 0 100%;
+  }
+}
+.acc-row .lr-main {
+  min-width: 0;
+  flex: 1 1 160px;
+}

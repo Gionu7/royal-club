@@ -2,7 +2,12 @@
 
 A session planner for the Royal Club youth football academy. Build a training session from a library of games and drills, then run it on the pitch, one activity at a time, with a timer, coaching points and quick notes on each child.
 
-It runs in the browser on a phone, tablet or laptop, works offline once opened, and needs no server or account. The interface and the library are in **English and Romanian**.
+It runs in the browser on a phone, tablet or laptop and works offline once opened. The interface and the library are in **Romanian** (default) **and English**.
+
+It runs in one of two modes:
+
+- **On one device** (default): no login, everything stays in that browser.
+- **Club mode**: one shared database for the whole club, with accounts the admin hands out. See [Club accounts](#club-accounts).
 
 ## What it does
 
@@ -28,7 +33,55 @@ The screen stays awake during a session. Arrow keys move between activities and 
 
 **Players.** Add children one at a time or paste a list ("Andrei, 7" puts the shirt number in). Each child has a profile with an "about" field (parent contact, medical notes), attendance across sessions and every note written about them.
 
-**Backup.** Everything is stored on the device you use. In *Settings* you can download a backup file (or copy it as text) and restore it on another phone.
+**Backup.** In *Settings* you can download a backup file (or copy it as text) and restore it on another phone. In club mode only the admin sees this, and restoring adds the file's items to the club without removing anything.
+
+## Club accounts
+
+In club mode everyone opens the same web address and signs in. What each account can do:
+
+| | Admin | Trainee coach | Viewer (player or parent) |
+|---|:-:|:-:|:-:|
+| See session plans and the activity library | ✓ | ✓ | ✓ |
+| Print a plan / save it as PDF | ✓ | ✓ | ✓ |
+| Run a session: timer, attendance, notes on children | ✓ | ✓ | |
+| See players, attendance and notes | ✓ | ✓ | |
+| Delete their own notes | ✓ | ✓ | |
+| Create or change sessions, activities and players | ✓ | | |
+| Delete sessions that were held, or anyone's notes | ✓ | | |
+| Create accounts, change roles, switch accounts off | ✓ | | |
+
+These rules live in the database itself (`supabase/schema.sql`, row-level security), so a limited account cannot get around them even outside the app. `npm run test:db` checks them against a real Postgres.
+
+The admin creates accounts in the app: **Settings → Manage accounts**. Children and parents without an email get a username (for example `andrei.pop`). Changing the role to *Switched off* removes all access at once.
+
+The app keeps a copy of the club data on each phone, so a session still runs at the pitch without signal; changes are sent when the connection comes back. A viewer's phone never receives players, attendance or notes. Signing out removes the club data from the phone.
+
+### Setting up club mode (Supabase, free)
+
+You do this once. It takes about 15 minutes.
+
+1. **Create the project.** Sign up at [supabase.com](https://supabase.com), create a new project (choose an EU region, e.g. Frankfurt) and wait for it to start.
+2. **Create the tables and rules.** In the project, open **SQL Editor → New query**, paste the whole of [`supabase/schema.sql`](supabase/schema.sql) and press **Run**.
+3. **Make yourself admin.** In a new SQL query, run this with your own email and name:
+   ```sql
+   insert into public.invites (email, role, name) values ('your.email@example.com', 'admin', 'Your Name');
+   ```
+4. **Create your login.** **Authentication → Users → Add user → Create new user**: the same email, a password, and tick **Auto Confirm User**.
+5. **Login settings.** In **Authentication → Sign In / Providers → Email**:
+   - turn **Confirm email** off, so username accounts work and new accounts can sign in straight away;
+   - leave **Allow new users to sign up** on. The app creates accounts this way. Anyone who signs up on their own gets *Waiting for approval* and sees nothing until you give them a role.
+6. **Connect the app.** In **Project Settings → API Keys** (or **Data API**), copy the **Project URL** and the **publishable / anon** key. Both are safe to make public. Never use the `service_role` / secret key. In GitHub, open **Settings → Secrets and variables → Actions → Variables** and add:
+   - `SUPABASE_URL` = the Project URL
+   - `SUPABASE_ANON_KEY` = the publishable / anon key
+
+   The Pages workflow writes them into `js/config.js` when it deploys. To run club mode locally, put the same two values in `js/config.js` instead.
+7. **Deploy and sign in.** Merge into `main` (GitHub Pages must be on, see below), open the site and sign in with your email and password.
+8. **Bring your existing data.** On the phone where you already used the app, sign in as admin and open **Settings → Upload this device's data to the club**. A backup file works too: **Settings → Restore**.
+9. **Hand out accounts** in **Settings → Manage accounts**.
+
+**Free plan notes.** Supabase pauses a free project after 7 days without use. `.github/workflows/keepalive.yml` calls the database every 3 days (using the same two variables) to prevent that. The free plan's limits (500 MB database, 50,000 monthly users) are far above what a club needs.
+
+**Forgotten passwords.** Everyone can change their own password in **Settings**. For a forgotten one: email accounts can get a reset email from **Authentication → Users** in Supabase. For a username account, delete the user there and create it again in the app (their notes stay).
 
 ## Running it
 
@@ -36,7 +89,9 @@ It is a static site: plain HTML, CSS and JavaScript modules, with no build step.
 
 ```bash
 npm start          # serves on http://localhost:8080 (python3 -m http.server)
-npm test           # unit tests for the timer and the data store (Node 20+)
+npm test           # unit tests: timer, data store, sync, translations (Node 20+)
+npm run test:db    # database access rules, against a throwaway local Postgres
+node tests/e2e/club-mode.cjs   # admin, coach and parent in three browsers (needs Playwright and npm start)
 ```
 
 Open `http://localhost:8080` on your computer, or use the computer's local IP address to open it on your phone over the same Wi-Fi.
@@ -57,6 +112,11 @@ js/diagram-helpers.js helpers for writing diagrams
 js/diagram.js         draws the pitch diagrams from data
 js/timer.js           countdown / stopwatch / rounds maths, beeps and vibration
 js/store.js           plans, players, notes, sessions and backups (localStorage)
+js/config.js          club database settings (empty = one-device mode)
+js/cloud.js           club mode: login, accounts, syncing with Supabase
+js/sync.js            merge rules between the phone and the club database
+supabase/schema.sql   tables, roles and access rules for Supabase
+supabase/test/        access-rule tests (npm run test:db)
 js/i18n.js            interface text in English and Romanian
 sw.js                 offline cache
 tests/                node:test unit tests
@@ -68,5 +128,6 @@ Add an entry to `MORE` in `js/library-more.js`. Text fields take `{ en, ro }` an
 
 ## Limits
 
-- Data lives in one browser on one device. Use the backup to move it, or to share it with another coach. Syncing between coaches would need a small backend.
+- Without club mode, data lives in one browser on one device. Use the backup to move it.
+- In club mode, if two people change the same item while one is offline, the last change to be sent wins.
 - Activities you create yourself are stored in the language you typed them in.

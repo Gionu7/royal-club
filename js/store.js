@@ -99,6 +99,58 @@ export function load(lang) {
   return seed(state, state.settings.lang || lang);
 }
 
+const SETTINGS_KEY = 'royalclub.settings.v1';
+
+/** Club mode keeps data in the club database; only this device's settings live here. */
+export function saveSettings(state) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ settings: state.settings }));
+  } catch {
+    /* optional */
+  }
+}
+
+export function loadSettings(fallbackLang = 'ro') {
+  const base = emptyState(fallbackLang);
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null') || JSON.parse(localStorage.getItem(KEY) || 'null');
+  } catch {
+    saved = null;
+  }
+  base.settings = { ...base.settings, ...(saved?.settings || {}) };
+  if (!base.settings.langChosen) base.settings.lang = 'ro';
+  base.seeded = true;
+  return base;
+}
+
+/** Data saved on this device before the club database was set up, if any. */
+export function loadDeviceData() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (!raw) return null;
+    const s = normalize(raw, 'ro');
+    const count = s.plans.length + s.players.length + s.runs.length + s.notes.length + s.activities.length;
+    return count ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Adds items from another state (a backup, or this device's old data); same ids are replaced. */
+export function mergeInto(state, other) {
+  let n = 0;
+  for (const k of ['activities', 'plans', 'players', 'notes', 'runs']) {
+    const byId = new Map(state[k].map((x) => [x.id, x]));
+    for (const item of other[k] || []) {
+      byId.set(item.id, item);
+      n++;
+    }
+    state[k] = [...byId.values()];
+  }
+  return n;
+}
+
 let saveTimer = null;
 export function save(state, { now = false } = {}) {
   const write = () => {
@@ -287,10 +339,11 @@ export function attendanceFor(state, playerId) {
 
 // ---------- notes ----------
 
-export function addNote(state, { playerId = null, text, runId = null, context = '' }) {
+export function addNote(state, { playerId = null, text, runId = null, context = '', createdBy = null }) {
   const clean = String(text || '').trim();
   if (!clean) return null;
   const note = { id: uid(), playerId, text: clean, runId, context, createdAt: Date.now() };
+  if (createdBy) note.createdBy = createdBy;
   state.notes.push(note);
   return note;
 }
