@@ -1,17 +1,48 @@
-import { t, tx, txList, setLang, getLang, detectLang, LANGS } from './i18n.js';
-import { CATEGORIES, GENERAL_TIPS } from './library.js';
+import { t, tx, txList, setLang, getLang, LANGS } from './i18n.js';
+import { CATEGORIES, AGE_GROUPS, TEMPLATES, ageOf, agesLabel, tipsFor, skillText } from './library.js';
 import { renderDiagram, legendSwatch } from './diagram.js';
 import * as S from './store.js';
 import * as T from './timer.js';
+import * as Cloud from './cloud.js';
 
 // ---------------------------------------------------------------- state
 
-const state = S.load(detectLang());
+const CLUB = Cloud.isEnabled();
+const state = CLUB ? S.loadSettings('ro') : S.load('ro');
 setLang(state.settings.lang);
+
+// What each role may do. The club database enforces the same rules (supabase/schema.sql).
+const ROLE_CAN = {
+  admin: ['editPlans', 'editLibrary', 'editPlayers', 'viewPlayers', 'run', 'notes', 'deleteRuns', 'backup', 'accounts'],
+  coach: ['viewPlayers', 'run', 'notes'],
+  viewer: [],
+};
+
+function role() {
+  return CLUB ? Cloud.role() : 'admin';
+}
+
+function can(what) {
+  if (what === 'accounts' && !CLUB) return false;
+  return (ROLE_CAN[role()] || []).includes(what);
+}
+
+function myId() {
+  return CLUB ? Cloud.getProfile()?.id || null : null;
+}
+
+function canDeleteNote(n) {
+  return role() === 'admin' || (can('notes') && n.createdBy && n.createdBy === myId());
+}
+
+// Screens and what they need.
+const NEEDS = { players: 'viewPlayers', player: 'viewPlayers', summary: 'viewPlayers', run: 'run', 'activity-edit': 'editLibrary', accounts: 'accounts' };
 
 const ui = {
   category: 'all',
   q: '',
+  age: null,
+  pickAge: null,
   pickCat: 'all',
   pickQ: '',
   sheet: null, // {type: 'picker'|'addTo'|'notes', ...}
@@ -28,7 +59,7 @@ const ui = {
   backupText: '',
 };
 
-const SECTIONS = { today: 'today', plans: 'sessions', plan: 'sessions', summary: 'sessions', library: 'library', activity: 'library', 'activity-edit': 'library', players: 'players', player: 'players', options: 'options', run: 'run' };
+const SECTIONS = { today: 'today', plans: 'sessions', plan: 'sessions', summary: 'sessions', print: 'sessions', accounts: 'options', login: 'today', blocked: 'today', loading: 'today', library: 'library', activity: 'library', 'activity-edit': 'library', players: 'players', player: 'players', options: 'options', run: 'run' };
 const HASH_TO_ROUTE = { today: 'today', sessions: 'plans', library: 'library', players: 'players', options: 'options' };
 
 let route = initialRoute();
@@ -82,8 +113,18 @@ window.addEventListener('popstate', (e) => {
   render();
 });
 
+function persist(now = false) {
+  if (CLUB) {
+    S.saveSettings(state);
+    if (Cloud.isActive()) {
+      Cloud.changed();
+      if (now) Cloud.saveCache();
+    }
+  } else S.save(state, { now });
+}
+
 function commit() {
-  S.save(state);
+  persist(false);
 }
 
 // ---------------------------------------------------------------- helpers
@@ -152,6 +193,7 @@ const ICONS = {
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   note: '<path d="M5 4h10l4 4v12H5z"/><path d="M14 4v5h5M8.5 13h7M8.5 16.5h5"/>',
   whistle: '<circle cx="9" cy="14" r="5"/><path d="M12.5 10.5 20 6v4l-5 2.5"/>',
+  print: '<path d="M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/><rect x="7" y="14" width="10" height="6" rx="1"/>',
   dice: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/>',
 };
 
@@ -160,6 +202,10 @@ function icon(name, cls = '') {
 }
 
 const CREST = `<svg class="crest" viewBox="0 0 40 44" aria-hidden="true"><path d="M20 2 36 7v15c0 10-7 17-16 20C11 39 4 32 4 22V7z" class="crest-shield"/><path d="M11 17l3 4 3-6 3 6 3-6 3 6 3-4-1.5 8h-15z" class="crest-crown"/><circle cx="20" cy="32" r="3.2" class="crest-ball"/></svg>`;
+
+function showAges(a) {
+  return a.ages && a.category !== 'break' ? agesLabel(a.ages) : '';
+}
 
 function catChip(cat) {
   return `<span class="cat cat-${cat}">${esc(t('cat_' + cat))}</span>`;
@@ -191,13 +237,14 @@ function shell(content, { title = '', backTo = null } = {}) {
     ['plans', 'sessions', t('navPlans')],
     ['library', 'library', t('navLibrary')],
     ['players', 'players', t('navPlayers')],
-  ];
+  ].filter(([r]) => r !== 'players' || can('viewPlayers'));
   const live = S.activeRun(state);
   return `
   <header class="topbar">
     <div class="wrap topbar-in">
       <button class="brand" data-act="nav" data-to="today">${CREST}<span><b>${esc(t('appName'))}</b><small>${esc(t('tagline'))}</small></span></button>
       <div class="top-actions">
+        ${CLUB ? `<span class="sync sync-${Cloud.getStatus()}" id="sync-badge" role="status" title="${esc(t('sync_' + Cloud.getStatus()))}" aria-label="${esc(t('sync_' + Cloud.getStatus()))}"></span>` : ''}
         ${live && route.name !== 'run' ? `<button class="live-pill" data-act="resume">${icon('whistle')}<span>${esc(t('resumeSession'))}</span></button>` : ''}
         <button class="icon-btn ${sec === 'options' ? 'on' : ''}" data-act="nav" data-to="options" aria-label="${esc(t('navOptions'))}">${icon('options')}</button>
       </div>
@@ -208,8 +255,8 @@ function shell(content, { title = '', backTo = null } = {}) {
     ${title ? `<h1 class="page-title">${esc(title)}</h1>` : ''}
     ${content}
   </main>
-  <nav class="tabbar" aria-label="Main">
-    <div class="tabbar-in">
+  <nav class="tabbar" aria-label="${esc(t('navMain'))}">
+    <div class="tabbar-in" style="grid-template-columns: repeat(${tabs.length}, 1fr)">
     ${tabs
       .map(([r, s, label]) => `<button class="tab ${sec === s ? 'on' : ''}" data-act="nav" data-to="${r}" ${sec === s ? 'aria-current="page"' : ''}>${icon(r)}<span>${esc(label)}</span></button>`)
       .join('')}
@@ -258,12 +305,12 @@ function viewToday() {
           .join('')}
       </ol>
       <div class="row gap wrap-row">
-        ${live ? '' : `<button class="btn primary lg" data-act="start-run" data-id="${plan.id}">${icon('play')}${esc(t('startSession'))}</button>`}
-        <button class="btn" data-act="nav" data-to="plan" data-id="${plan.id}">${icon('edit')}${esc(t('edit'))}</button>
+        ${live || !can('run') ? '' : `<button class="btn primary lg" data-act="start-run" data-id="${plan.id}">${icon('play')}${esc(t('startSession'))}</button>`}
+        <button class="btn" data-act="nav" data-to="plan" data-id="${plan.id}">${can('editPlans') ? `${icon('edit')}${esc(t('edit'))}` : `${icon('next')}${esc(t('open'))}`}</button>
       </div>
     </section>`;
   } else {
-    next = `<section class="card empty"><p>${esc(t('noPlans'))}</p><button class="btn primary" data-act="new-plan">${icon('plus')}${esc(t('newPlan'))}</button></section>`;
+    next = `<section class="card empty"><p>${esc(t('noPlans'))}</p>${can('editPlans') ? `<button class="btn primary" data-act="new-plan">${icon('plus')}${esc(t('newPlan'))}</button>` : ''}</section>`;
   }
 
   return shell(`
@@ -273,15 +320,19 @@ function viewToday() {
     <section class="quick">
       <h2 class="section-title">${esc(t('quickLinks'))}</h2>
       <div class="quick-grid">
-        <button class="quick-btn" data-act="new-plan">${icon('plus')}<span>${esc(t('newPlan'))}</span></button>
+        ${can('editPlans') ? `<button class="quick-btn" data-act="new-plan">${icon('plus')}<span>${esc(t('newPlan'))}</span></button>` : `<button class="quick-btn" data-act="nav" data-to="plans">${icon('plans')}<span>${esc(t('plans'))}</span></button>`}
         <button class="quick-btn" data-act="nav" data-to="library">${icon('library')}<span>${esc(t('browseLibrary'))}</span></button>
-        <button class="quick-btn" data-act="nav" data-to="players">${icon('players')}<span>${roster ? esc(t('rosterCount', { n: roster })) : esc(t('addPlayers'))}</span></button>
+        ${can('viewPlayers') ? `<button class="quick-btn" data-act="nav" data-to="players">${icon('players')}<span>${roster ? esc(t('rosterCount', { n: roster })) : esc(t('addPlayers'))}</span></button>` : ''}
       </div>
     </section>
-    <section>
+    ${
+      can('viewPlayers')
+        ? `<section>
       <h2 class="section-title">${esc(t('recent'))}</h2>
       ${runs.length ? runList(runs) : `<p class="muted">${esc(t('noRuns'))}</p>`}
-    </section>
+    </section>`
+        : ''
+    }
   `);
 }
 
@@ -306,7 +357,7 @@ function viewPlans() {
     `
     <div class="row between">
       <p class="muted">${plans.length} · ${esc(t('plans'))}</p>
-      <button class="btn primary" data-act="new-plan">${icon('plus')}${esc(t('newPlan'))}</button>
+      ${can('editPlans') ? `<button class="btn primary" data-act="new-plan">${icon('plus')}${esc(t('newPlan'))}</button>` : ''}
     </div>
     <div class="plan-grid">
       ${
@@ -325,16 +376,55 @@ function viewPlans() {
           : `<div class="card empty"><p>${esc(t('noPlans'))}</p></div>`
       }
     </div>
-    <h2 class="section-title">${esc(t('pastSessions'))}</h2>
-    ${runs.length ? runList(runs) : `<p class="muted">${esc(t('noRuns'))}</p>`}
+    ${can('editPlans') ? `<section>
+      <h2 class="section-title">${esc(t('templates'))}</h2>
+      <p class="muted sm">${esc(t('templatesHint'))}</p>
+      <div class="tpl-grid">${TEMPLATES.map((tp) => `<button class="tpl" data-act="from-template" data-id="${tp.id}"><span class="pc-team">${esc(tx(tp.name).split(' · ')[0])} · ${tp.target} ${esc(t('min'))}</span><b>${esc(tx(tp.name).split(' · ').slice(2).join(' · ') || tx(tp.name))}</b><small>${esc(tx(tp.focus))}</small></button>`).join('')}</div>
+    </section>` : ''}
+    ${can('viewPlayers') ? `<h2 class="section-title">${esc(t('pastSessions'))}</h2>
+    ${runs.length ? runList(runs) : `<p class="muted">${esc(t('noRuns'))}</p>`}` : ''}
   `,
     { title: t('plans') },
+  );
+}
+
+function viewPlanRead(plan) {
+  const tl = S.timeline(state, plan);
+  const live = S.activeRun(state);
+  return shell(
+    `
+    <div class="act-head">
+      <div class="ac-meta"><span class="pc-team">${esc(plan.team || '')}</span><span class="ac-min">${esc(fmtDate(plan.date))} · ${S.planMinutes(plan)} ${esc(t('min'))}</span><span class="badge">${esc(t('viewOnly'))}</span></div>
+      <h1 class="page-title">${esc(planTitle(plan))}</h1>
+      ${plan.focus ? `<p class="lead">${esc(plan.focus)}</p>` : ''}
+    </div>
+    ${timelineBar(state, plan)}
+    <ol class="blocks">${tl
+      .map(
+        (x) => `<li class="block">
+        <div class="bl-time"><b>${S.clock(x.start)}</b><small>${S.clock(x.end)}</small></div>
+        <div class="bl-body">
+          <div class="bl-head">${catChip(x.activity?.category || 'break')}
+            <button class="bl-title" data-act="nav" data-to="activity" data-id="${esc(x.block.activityId)}">${esc(tx(x.activity?.title) || '?')}</button></div>
+          <span class="muted sm">${x.block.duration} ${esc(t('min'))}${x.block.note ? ` · ${esc(x.block.note)}` : ''}</span>
+        </div>
+      </li>`,
+      )
+      .join('')}</ol>
+    ${plan.notes ? `<section class="sect"><h3>${esc(t('planNotes'))}</h3><p>${nl(plan.notes)}</p></section>` : ''}
+    <div class="action-bar">
+      ${can('run') ? (live ? `<button class="btn primary lg" data-act="resume">${icon('play')}${esc(t('resumeSession'))}</button>` : `<button class="btn primary lg" data-act="start-run" data-id="${plan.id}" ${plan.blocks.length ? '' : 'disabled'}>${icon('play')}${esc(t('startSession'))}</button>`) : ''}
+      <button class="btn" data-act="nav" data-to="print" data-id="${plan.id}" ${plan.blocks.length ? '' : 'disabled'}>${icon('print')}${esc(t('printPlan'))}</button>
+    </div>
+  `,
+    { backTo: ['plans', t('navPlans')] },
   );
 }
 
 function viewPlan() {
   const plan = S.getPlan(state, route.id);
   if (!plan) return viewPlans();
+  if (!can('editPlans')) return viewPlanRead(plan);
   const tl = S.timeline(state, plan);
   const total = S.planMinutes(plan);
   const diff = total - (plan.target || 0);
@@ -402,6 +492,7 @@ function viewPlan() {
 
     <div class="action-bar">
       ${live ? `<button class="btn primary lg" data-act="resume">${icon('play')}${esc(t('resumeSession'))}</button>` : `<button class="btn primary lg" data-act="start-run" data-id="${plan.id}" ${plan.blocks.length ? '' : 'disabled'}>${icon('play')}${esc(t('startSession'))}</button>`}
+      <button class="btn" data-act="nav" data-to="print" data-id="${plan.id}" ${plan.blocks.length ? '' : 'disabled'}>${icon('print')}${esc(t('printPlan'))}</button>
       <button class="btn" data-act="dup-plan" data-id="${plan.id}">${icon('copy')}${esc(t('duplicate'))}</button>
       ${confirmButton('plan-' + plan.id, t('delete'), 'delete-plan', `data-id="${plan.id}"`)}
     </div>
@@ -420,13 +511,20 @@ function libraryCards(list) {
       return `<button class="card act-card" data-act="nav" data-to="activity" data-id="${esc(a.id)}">
         <span class="ac-thumb ${d ? '' : 'none'}">${d ? d.svg : icon(a.category === 'break' ? 'whistle' : 'note')}</span>
         <span class="ac-body">
-          <span class="ac-meta">${catChip(a.category)}<span class="ac-min">${a.duration} ${esc(t('min'))}</span>${S.isBuiltIn(a.id) ? '' : `<span class="badge">${esc(t('custom'))}</span>`}</span>
+          <span class="ac-meta">${catChip(a.category)}<span class="ac-min">${a.duration} ${esc(t('min'))}</span>${showAges(a) ? `<span class="ac-age">${showAges(a)}</span>` : ''}${S.isBuiltIn(a.id) ? '' : `<span class="badge">${esc(t('custom'))}</span>`}</span>
           <b class="ac-title">${esc(tx(a.title))}</b>
           <span class="ac-sum">${esc(tx(a.summary))}</span>
         </span>
       </button>`;
     })
     .join('');
+}
+
+function ageSelect(id, bind, current) {
+  return `<select class="age-select" id="${id}" data-bind="${bind}" aria-label="${esc(t('ageLabel'))}">
+    <option value="">${esc(t('ageAll'))}</option>
+    ${AGE_GROUPS.map((a) => `<option value="${a}" ${current === a ? 'selected' : ''}>U${a}</option>`).join('')}
+  </select>`;
 }
 
 function catFilter(current, act) {
@@ -436,12 +534,13 @@ function catFilter(current, act) {
 }
 
 function viewLibrary() {
-  const list = S.searchActivities(S.allActivities(state), { q: ui.q, category: ui.category });
+  const list = S.searchActivities(S.allActivities(state), { q: ui.q, category: ui.category, age: ui.age });
   return shell(
     `
     <div class="lib-tools">
       <input class="search" id="lib-search" type="search" data-bind="lib-q" value="${esc(ui.q)}" placeholder="${esc(t('search'))}" aria-label="${esc(t('search'))}">
-      <button class="btn" data-act="new-activity">${icon('plus')}${esc(t('newActivity'))}</button>
+      ${ageSelect('lib-age', 'lib-age', ui.age)}
+      ${can('editLibrary') ? `<button class="btn" data-act="new-activity">${icon('plus')}${esc(t('newActivity'))}</button>` : ''}
     </div>
     ${catFilter(ui.category, 'lib-cat')}
     <div class="act-grid" id="lib-grid">${libraryCards(list)}</div>
@@ -470,6 +569,7 @@ function roundsText(r) {
 function activityBody(a, { onPitch = false } = {}) {
   const coaching = txList(a.coaching);
   const facts = [
+    [t('ages'), showAges(a)],
     [t('players'), tx(a.players)],
     [t('space'), tx(a.space)],
     [t('equipment'), tx(a.equipment)],
@@ -500,6 +600,7 @@ function activityBody(a, { onPitch = false } = {}) {
     ${section(t('coaching'), hints, 'hint-card')}
     ${variations ? section(`${t('easier')} / ${t('harder')}`, variations) : ''}
     ${a.calls?.length ? section(t('calls'), `<div class="calls static">${a.calls.map((c) => `<span class="call" ${c.color ? `style="--call:${c.color}"` : ''}>${esc(tx(c))}</span>`).join('')}</div>`) : ''}
+    ${a.skills?.length ? section(t('skills'), `<p class="muted">${esc(a.skills.map((k) => tx(skillText(k))).join(' · '))}</p>`) : ''}
 `;
 }
 
@@ -511,13 +612,13 @@ function viewActivity() {
     `
     <article class="activity">
       <div class="act-head">
-        <div class="ac-meta">${catChip(a.category)}<span class="ac-min">${a.duration} ${esc(t('min'))}</span>${builtIn ? '' : `<span class="badge">${esc(t('custom'))}</span>`}</div>
+        <div class="ac-meta">${catChip(a.category)}<span class="ac-min">${a.duration} ${esc(t('min'))}</span>${showAges(a) ? `<span class="ac-age">${showAges(a)}</span>` : ''}${builtIn ? '' : `<span class="badge">${esc(t('custom'))}</span>`}</div>
         <h1 class="page-title">${esc(tx(a.title))}</h1>
         ${tx(a.summary) ? `<p class="lead">${esc(tx(a.summary))}</p>` : ''}
         <div class="row gap wrap-row">
-          <button class="btn primary" data-act="open-addto" data-id="${esc(a.id)}">${icon('plus')}${esc(t('addToPlan'))}</button>
-          <button class="btn" data-act="edit-activity" data-id="${esc(a.id)}">${icon(builtIn ? 'copy' : 'edit')}${esc(builtIn ? t('duplicateEdit') : t('edit'))}</button>
-          ${builtIn ? '' : confirmButton('act-' + a.id, t('delete'), 'delete-activity', `data-id="${esc(a.id)}"`)}
+          ${can('editPlans') ? `<button class="btn primary" data-act="open-addto" data-id="${esc(a.id)}">${icon('plus')}${esc(t('addToPlan'))}</button>` : ''}
+          ${can('editLibrary') ? `<button class="btn" data-act="edit-activity" data-id="${esc(a.id)}">${icon(builtIn ? 'copy' : 'edit')}${esc(builtIn ? t('duplicateEdit') : t('edit'))}</button>` : ''}
+          ${builtIn || !can('editLibrary') ? '' : confirmButton('act-' + a.id, t('delete'), 'delete-activity', `data-id="${esc(a.id)}"`)}
         </div>
       </div>
       ${activityBody(a)}
@@ -554,6 +655,8 @@ function startDraft(id) {
     rWork: a?.rounds?.work || '',
     rRest: a?.rounds?.rest ?? '',
     diagram: a?.diagram || null,
+    aMin: a?.ages?.[0] ?? '',
+    aMax: a?.ages?.[1] ?? '',
     callColors: a?.calls ? Object.fromEntries(a.calls.filter((c) => c.color).map((c) => [tx(c), c.color])) : {},
     error: '',
   };
@@ -586,6 +689,9 @@ function viewActivityEdit() {
       <fieldset class="field wide"><legend>${esc(t('fRounds'))}</legend>
         <div class="field-row">${inp('rCount', t('fRoundCount'), 'number')}${inp('rWork', t('fRoundWork'), 'number')}${inp('rRest', t('fRoundRest'), 'number')}</div>
       </fieldset>
+      <div class="field-row">
+        ${['aMin', 'aMax'].map((f) => `<label class="field"><span>${esc(t(f === 'aMin' ? 'fAgeFrom' : 'fAgeTo'))}</span><select id="d-${f}" data-bind="draft" data-f="${f}"><option value="">–</option>${AGE_GROUPS.map((g) => `<option value="${g}" ${Number(d[f]) === g ? 'selected' : ''}>U${g}</option>`).join('')}</select></label>`).join('')}
+      </div>
       ${inp('skills', t('fSkills'))}
       <div class="row gap">
         <button class="btn primary" type="submit">${icon('check')}${esc(t('save'))}</button>
@@ -625,6 +731,7 @@ function saveDraft() {
     calls: lines(d.calls).map((c) => (d.callColors[c] ? { en: c, ro: c, color: d.callColors[c] } : c)),
     skills: String(d.skills || '').split(',').map((x) => x.trim()).filter(Boolean),
     rounds: count > 0 && work > 0 ? { count, work, rest: Number(d.rRest) || 0 } : null,
+    ages: d.aMin || d.aMax ? [Number(d.aMin || d.aMax), Number(d.aMax || d.aMin)].sort((x, y) => x - y) : null,
     diagram: d.diagram,
     custom: true,
   };
@@ -652,7 +759,7 @@ function viewPlayers() {
     : `<div class="card empty"><p>${esc(t('noPlayers'))}</p></div>`;
   return shell(
     `
-    <form class="card add-player" data-form="add-player">
+    ${can('editPlayers') ? `<form class="card add-player" data-form="add-player">
       <div class="field-row">
         <label class="field grow"><span>${esc(t('playerName'))}</span><input id="np-name" name="name" autocomplete="off"></label>
         <label class="field num-field"><span>${esc(t('shirt'))}</span><input id="np-num" name="number" inputmode="numeric" autocomplete="off"></label>
@@ -665,7 +772,7 @@ function viewPlayers() {
              <button type="button" class="btn" data-act="bulk-add">${icon('plus')}${esc(t('add'))}</button>`
           : ''
       }
-    </form>
+    </form>` : ''}
     ${list}
   `,
     { title: `${t('roster')}${players.length ? ` · ${players.length}` : ''}` },
@@ -673,8 +780,10 @@ function viewPlayers() {
 }
 
 function initials(name) {
-  return name
+  return String(name || '')
     .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ''))
+    .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0] || '')
     .join('')
@@ -692,7 +801,7 @@ function noteItem(n, { withPlayer = false } = {}) {
   return `<li class="note">
     <div class="note-meta">${p ? `<b>${esc(p.name)}</b> · ` : ''}${esc(fmtDate(n.createdAt))} ${esc(fmtTime(n.createdAt))}${n.context ? ` · ${esc(n.context)}` : ''}</div>
     <p>${nl(n.text)}</p>
-    <button class="icon-btn sm note-del" data-act="delete-note" data-id="${n.id}" aria-label="${esc(t('delete'))}">${icon('trash')}</button>
+    ${canDeleteNote(n) ? `<button class="icon-btn sm note-del" data-act="delete-note" data-id="${n.id}" aria-label="${esc(t('delete'))}">${icon('trash')}</button>` : ''}
   </li>`;
 }
 
@@ -701,6 +810,7 @@ function viewPlayer() {
   if (!p) return viewPlayers();
   const notes = S.playerNotes(state, p.id);
   const at = S.attendanceFor(state, p.id);
+  const ro = can('editPlayers') ? '' : 'disabled';
   return shell(
     `
     <div class="player-head">
@@ -709,20 +819,20 @@ function viewPlayer() {
     </div>
     <section class="card form-card">
       <div class="field-row">
-        <label class="field grow"><span>${esc(t('playerName'))}</span><input id="pl-name" data-bind="player" data-f="name" value="${esc(p.name)}"></label>
-        <label class="field num-field"><span>${esc(t('shirt'))}</span><input id="pl-number" data-bind="player" data-f="number" value="${esc(p.number)}" inputmode="numeric"></label>
+        <label class="field grow"><span>${esc(t('playerName'))}</span><input id="pl-name" data-bind="player" data-f="name" value="${esc(p.name)}" ${ro}></label>
+        <label class="field num-field"><span>${esc(t('shirt'))}</span><input id="pl-number" data-bind="player" data-f="number" value="${esc(p.number)}" inputmode="numeric" ${ro}></label>
       </div>
-      <label class="field wide"><span>${esc(t('about'))}</span><textarea id="pl-about" rows="2" data-bind="player" data-f="about">${esc(p.about)}</textarea></label>
+      <label class="field wide"><span>${esc(t('about'))}</span><textarea id="pl-about" rows="2" data-bind="player" data-f="about" ${ro}>${esc(p.about)}</textarea></label>
     </section>
-    <section class="card">
+    ${can('notes') ? `<section class="card">
       <h2 class="section-title">${esc(t('addNote'))}</h2>
       ${tagChips('player-note')}
       <textarea id="player-note" rows="3" data-bind="player-note" placeholder="${esc(t('writeNote'))}">${esc(ui.playerNoteText)}</textarea>
       <button class="btn primary" data-act="save-player-note" data-id="${p.id}">${icon('check')}${esc(t('saveNote'))}</button>
-    </section>
+    </section>` : ''}
     <h2 class="section-title">${esc(t('notes'))}</h2>
     ${notes.length ? `<ul class="notes">${notes.map((n) => noteItem(n)).join('')}</ul>` : `<p class="muted">${esc(t('noNotes'))}</p>`}
-    <div class="action-bar">${confirmButton('player-' + p.id, t('archive'), 'archive-player', `data-id="${p.id}"`)}</div>
+    ${can('editPlayers') ? `<div class="action-bar">${confirmButton('player-' + p.id, t('archive'), 'archive-player', `data-id="${p.id}"`)}</div>` : ''}
   `,
     { backTo: ['players', t('navPlayers')] },
   );
@@ -733,8 +843,30 @@ function viewPlayer() {
 function viewOptions() {
   const s = state.settings;
   const toggle = (k, label) => `<label class="switch"><input type="checkbox" id="opt-${k}" data-bind="setting" data-f="${k}" ${s[k] ? 'checked' : ''}><span>${esc(label)}</span></label>`;
+  const me = CLUB ? Cloud.getProfile() : null;
+  const device = CLUB && role() === 'admin' ? S.loadDeviceData() : null;
   return shell(
     `
+    ${
+      me
+        ? `<section class="card stack">
+      <h2 class="section-title">${esc(t('account'))}</h2>
+      <p><b>${esc(me.name || Cloud.shownLogin(me.email))}</b><br><span class="muted">${esc(Cloud.shownLogin(me.email))} · ${esc(t('role_' + me.role))}</span></p>
+      <p class="muted sm">${esc(t('roleHelp_' + me.role))}</p>
+      <div class="row gap wrap-row">
+        ${can('accounts') ? `<button class="btn primary" data-act="nav" data-to="accounts">${icon('players')}${esc(t('manageAccounts'))}</button>` : ''}
+        <button class="btn" data-act="toggle-password">${esc(t('changePassword'))}</button>
+        <button class="btn ghost" data-act="sign-out">${esc(t('signOut'))}</button>
+      </div>
+      ${
+        ui.pwOpen
+          ? `<form class="field-row" data-form="password"><label class="field grow"><span>${esc(t('newPassword'))}</span><input id="new-password" name="password" type="password" minlength="8" autocomplete="new-password"></label><button class="btn self-end" type="submit">${esc(t('save'))}</button></form>`
+          : ''
+      }
+    </section>`
+        : ''
+    }
+    ${device ? `<section class="card stack"><h2 class="section-title">${esc(t('uploadLocal'))}</h2><p class="muted">${esc(t('uploadLocalHint'))}</p><div><button class="btn" data-act="upload-device">${esc(t('uploadLocal'))}</button></div></section>` : ''}
     <section class="card">
       <h2 class="section-title">${esc(t('language'))}</h2>
       <div class="seg">${LANGS.map((l) => `<button class="${getLang() === l.id ? 'on' : ''}" data-act="lang" data-l="${l.id}" aria-pressed="${getLang() === l.id}">${esc(l.label)}</button>`).join('')}</div>
@@ -745,9 +877,9 @@ function viewOptions() {
       ${toggle('autoStart', t('autoStart'))}
       <p class="muted sm">${esc(t('keepAwake'))}</p>
     </section>
-    <section class="card stack">
+    ${!CLUB || can('backup') ? `<section class="card stack">
       <h2 class="section-title">${esc(t('backup'))}</h2>
-      <p class="muted">${esc(t('backupHint'))}</p>
+      <p class="muted">${esc(CLUB ? t('cloudBackupHint') : t('backupHint'))}</p>
       <div class="row gap wrap-row">
         <button class="btn" data-act="export-file">${esc(t('exportFile'))}</button>
         <button class="btn" data-act="copy-backup">${icon('copy')}${esc(t('copyBackup'))}</button>
@@ -756,11 +888,11 @@ function viewOptions() {
       <label class="field wide"><span>${esc(t('importFile'))}</span><input id="import-file" type="file" accept="application/json,.json"></label>
       <label class="field wide"><span>${esc(t('importPaste'))}</span><textarea id="import-text" rows="3"></textarea></label>
       <div><button class="btn" data-act="import-text">${esc(t('importBtn'))}</button></div>
-    </section>
-    <section class="card stack">
+    </section>` : ''}
+    ${CLUB ? '' : `<section class="card stack">
       <p class="muted sm">${esc(t('about_app'))}</p>
       <div>${confirmButton('reset-all', t('resetAll'), 'reset-all')}</div>
-    </section>
+    </section>`}
   `,
     { title: t('navOptions') },
   );
@@ -811,18 +943,18 @@ function viewRunAttendance(run) {
         .join('')}</div>`
         : `<div class="card empty"><p>${esc(t('noRoster'))}</p></div>`
     }
-    <form class="add-player inline" data-form="add-player-run">
+    ${can('editPlayers') ? `<form class="add-player inline" data-form="add-player-run">
       <div class="field-row">
         <label class="field grow"><span>${esc(t('addPlayer'))}</span><input id="run-np-name" name="name" autocomplete="off"></label>
         <button class="btn self-end" type="submit">${icon('plus')}${esc(t('add'))}</button>
       </div>
-    </form>
-    ${tipsBlock()}
+    </form>` : ''}
+    ${tipsBlock(run.team)}
   `;
 }
 
-function tipsBlock() {
-  return `<details class="tips" ${ui.showTips ? 'open' : ''}><summary data-act="toggle-tips">${icon('whistle')}${esc(t('coaching'))} · U7</summary><ul class="hints">${GENERAL_TIPS.map((g) => `<li>${icon('check')}<span>${esc(tx(g))}</span></li>`).join('')}</ul></details>`;
+function tipsBlock(team) {
+  return `<details class="tips" ${ui.showTips ? 'open' : ''}><summary data-act="toggle-tips">${icon('whistle')}${esc(t('reminders'))}${team ? ` · ${esc(team)}` : ''}</summary><ul class="hints">${tipsFor(ageOf(team)).map((g) => `<li>${icon('check')}<span>${esc(tx(g))}</span></li>`).join('')}</ul></details>`;
 }
 
 function timerCard(run, step) {
@@ -895,7 +1027,7 @@ function viewRunStep(run) {
         ? `<button class="card up-next" data-act="run-next"><span class="eyebrow">${esc(t('upNext'))}</span><span class="un-row">${catChip(na.category)}<b>${esc(tx(na.title))}</b><span class="muted">${nextStep.duration} ${esc(t('min'))}</span></span></button>`
         : `<p class="muted center">${esc(t('lastOne'))}</p>`
     }
-    ${tipsBlock()}
+    ${tipsBlock(run.team)}
   `;
 }
 
@@ -914,7 +1046,7 @@ function viewRunFinish(run) {
     ${notes.length ? `<ul class="notes">${notes.map((n) => noteItem(n, { withPlayer: true })).join('')}</ul>` : `<p class="muted">${esc(t('noNotesTaken'))}</p>`}
     <div class="action-bar">
       <button class="btn primary lg" data-act="finish-run">${icon('check')}${esc(t('saveAndClose'))}</button>
-      ${confirmButton('discard-run', t('discardRun'), 'discard-run')}
+      ${can('deleteRuns') ? confirmButton('discard-run', t('discardRun'), 'discard-run') : ''}
     </div>`;
 }
 
@@ -976,13 +1108,13 @@ function flashHtml() {
 // ---------------------------------------------------------------- sheets
 
 function pickerList() {
-  const list = S.searchActivities(S.allActivities(state), { q: ui.pickQ, category: ui.pickCat });
+  const list = S.searchActivities(S.allActivities(state), { q: ui.pickQ, category: ui.pickCat, age: ui.pickAge });
   if (!list.length) return `<p class="muted">${esc(t('noResults'))}</p>`;
   return `<ul class="list pick">${list
     .map(
       (a) => `<li class="pick-row">
       <span class="dot bg-${a.category}"></span>
-      <span class="lr-main"><b>${esc(tx(a.title))}</b><small>${esc(t('cat_' + a.category))} · ${a.duration} ${esc(t('min'))}</small></span>
+      <span class="lr-main"><b>${esc(tx(a.title))}</b><small>${esc(t('cat_' + a.category))} · ${a.duration} ${esc(t('min'))}${showAges(a) ? ` · ${showAges(a)}` : ''}</small></span>
       <button class="btn sm primary" data-act="pick" data-id="${esc(a.id)}">${icon('plus')}${esc(t('add'))}</button>
     </li>`,
     )
@@ -1029,7 +1161,7 @@ function sheetHtml() {
   let title = '';
   if (ui.sheet.type === 'picker') {
     title = t('pickActivity');
-    body = `<input class="search" id="pick-search" type="search" data-bind="pick-q" value="${esc(ui.pickQ)}" placeholder="${esc(t('search'))}" aria-label="${esc(t('search'))}">
+    body = `<div class="lib-tools"><input class="search" id="pick-search" type="search" data-bind="pick-q" value="${esc(ui.pickQ)}" placeholder="${esc(t('search'))}" aria-label="${esc(t('search'))}">${ageSelect('pick-age', 'pick-age', ui.pickAge)}</div>
       ${catFilter(ui.pickCat, 'pick-cat')}
       <div id="pick-list">${pickerList()}</div>`;
   } else if (ui.sheet.type === 'addTo') {
@@ -1067,11 +1199,21 @@ const VIEWS = {
   options: viewOptions,
   run: viewRun,
   summary: viewSummary,
+  print: viewPrint,
+  login: viewLogin,
+  blocked: viewBlocked,
+  loading: viewLoading,
+  accounts: viewAccounts,
 };
 
 const app = document.getElementById('app');
 
 function render() {
+  if (CLUB && !['login', 'loading'].includes(route.name)) {
+    if (!Cloud.getProfile()) route = { name: 'login' };
+    else if (!Cloud.isActive()) route = { name: 'blocked' };
+  }
+  if (NEEDS[route.name] && !can(NEEDS[route.name])) route = { name: 'today' };
   const fn = VIEWS[route.name] || viewToday;
   app.innerHTML = fn();
   document.body.classList.toggle('in-run', route.name === 'run');
@@ -1097,12 +1239,209 @@ function viewSummary() {
     </dl>
     ${names.length ? `<p class="att-names">${names.map(esc).join(', ')}</p>` : ''}
     <ol class="run-order">${run.steps.map((s) => `<li><span class="dot bg-${stepActivity(s).category}"></span><span class="ro-title">${esc(tx(stepActivity(s).title))}</span><span class="ro-min">${s.duration}′</span></li>`).join('')}</ol>
-    <label class="field wide"><span>${esc(t('reflection'))}</span><textarea id="reflection" rows="4" data-bind="reflection-past" data-id="${run.id}" placeholder="${esc(t('reflectionHint'))}">${esc(run.reflection)}</textarea></label>
+    <label class="field wide"><span>${esc(t('reflection'))}</span><textarea id="reflection" rows="4" data-bind="reflection-past" data-id="${run.id}" placeholder="${esc(t('reflectionHint'))}" ${can('run') ? '' : 'disabled'}>${esc(run.reflection)}</textarea></label>
     <h2 class="section-title">${esc(t('notesTaken'))}</h2>
     ${notes.length ? `<ul class="notes">${notes.map((n) => noteItem(n, { withPlayer: true })).join('')}</ul>` : `<p class="muted">${esc(t('noNotesTaken'))}</p>`}
-    <div class="action-bar">${confirmButton('run-' + run.id, t('delete'), 'delete-run', `data-id="${run.id}"`)}</div>
+    ${can('deleteRuns') ? `<div class="action-bar">${confirmButton('run-' + run.id, t('delete'), 'delete-run', `data-id="${run.id}"`)}</div>` : ''}
   `,
     { backTo: ['plans', t('navPlans')] },
+  );
+}
+
+// ---------------------------------------------------------------- club login and accounts
+
+function loginShell(body) {
+  return `<main class="wrap login">
+    <div class="login-card card">
+      <div class="login-brand">${CREST}<div><b>${esc(t('appName'))}</b><small>${esc(t('tagline'))}</small></div></div>
+      ${body}
+    </div>
+    <div class="seg login-lang">${LANGS.map((l) => `<button class="${getLang() === l.id ? 'on' : ''}" data-act="lang" data-l="${l.id}" aria-pressed="${getLang() === l.id}">${esc(l.label)}</button>`).join('')}</div>
+  </main>
+  <div id="toast" class="toast" role="status" ${ui.toast ? '' : 'hidden'}>${esc(ui.toast || '')}</div>`;
+}
+
+function viewLoading() {
+  return loginShell(`<p class="muted">${esc(t('connecting'))}</p>`);
+}
+
+function viewLogin() {
+  return loginShell(`
+    <h1 class="page-title">${esc(t('loginTitle'))}</h1>
+    <p class="muted">${esc(t('loginHint'))}</p>
+    <form class="stack" data-form="login" novalidate>
+      <label class="field wide"><span>${esc(t('loginId'))}</span><input id="login-id" name="login" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+      <label class="field wide"><span>${esc(t('password'))}</span><input id="login-pw" name="password" type="password" autocomplete="current-password" required></label>
+      ${ui.loginError ? `<p class="error" role="alert">${esc(ui.loginError)}</p>` : ''}
+      <button class="btn primary lg" type="submit" ${ui.loggingIn ? 'disabled' : ''}>${esc(ui.loggingIn ? t('signingIn') : t('signIn'))}</button>
+    </form>`);
+}
+
+function viewBlocked() {
+  const me = Cloud.getProfile();
+  return loginShell(`
+    <h1 class="page-title">${esc(t('blockedTitle'))}</h1>
+    <p>${esc(me?.role === 'disabled' ? t('blockedDisabled') : t('blockedPending'))}</p>
+    <p class="muted sm">${esc(Cloud.shownLogin(me?.email))}</p>
+    <div class="row gap"><button class="btn" data-act="recheck">${icon('reset')}${esc(t('open'))}</button><button class="btn ghost" data-act="sign-out">${esc(t('signOut'))}</button></div>`);
+}
+
+const ROLES = ['admin', 'coach', 'viewer', 'pending', 'disabled'];
+
+function viewAccounts() {
+  const data = ui.accounts;
+  const me = Cloud.getProfile();
+  if (!data && !ui.accountsLoading) loadAccounts();
+  const people = (data?.people || []).slice().sort((a, b) => ROLES.indexOf(a.role) - ROLES.indexOf(b.role) || (a.name || a.email).localeCompare(b.name || b.email));
+  return shell(
+    `
+    <p class="muted">${esc(t('accountsHint'))}</p>
+    <form class="card form-card" data-form="new-account" novalidate>
+      <h2 class="section-title">${esc(t('newAccount'))}</h2>
+      <div class="field-row">
+        <label class="field"><span>${esc(t('accountName'))}</span><input id="acc-name" name="name" autocomplete="off"></label>
+        <label class="field"><span>${esc(t('accountLogin'))}</span><input id="acc-login" name="login" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
+      </div>
+      <p class="muted sm">${esc(t('accountLoginHint'))}</p>
+      <div class="field-row">
+        <label class="field"><span>${esc(t('accountPassword'))}</span><input id="acc-pw" name="password" type="text" autocomplete="off" minlength="8"></label>
+        <label class="field"><span>${esc(t('accountRole'))}</span><select id="acc-role" name="role">${['coach', 'viewer', 'admin'].map((r) => `<option value="${r}">${esc(t('role_' + r))}</option>`).join('')}</select></label>
+      </div>
+      <ul class="role-help muted sm">${['coach', 'viewer'].map((r) => `<li><b>${esc(t('role_' + r))}:</b> ${esc(t('roleHelp_' + r))}</li>`).join('')}</ul>
+      ${ui.accountMsg ? `<p class="${ui.accountMsg.ok ? 'notice' : 'error'}" role="status">${esc(ui.accountMsg.text)}</p>` : ''}
+      <div><button class="btn primary" type="submit" ${ui.accountBusy ? 'disabled' : ''}>${icon('plus')}${esc(t('createAccount'))}</button></div>
+    </form>
+    <h2 class="section-title">${esc(t('accounts'))}${data ? ` · ${people.length}` : ''}</h2>
+    ${
+      data
+        ? `<ul class="list">${people
+            .map(
+              (p) => `<li class="acc-row">
+        <span class="avatar">${esc(initials(p.name || p.email))}</span>
+        <span class="lr-main"><b>${esc(p.name || Cloud.shownLogin(p.email))}${p.id === me?.id ? ` <small>(${esc(t('you'))})</small>` : ''}</b><small>${esc(Cloud.shownLogin(p.email))}</small></span>
+        <select class="role-select" id="role-${p.id}" data-bind="account-role" data-id="${p.id}" aria-label="${esc(t('accountRole'))}" ${p.id === me?.id ? 'disabled' : ''}>${ROLES.map((r) => `<option value="${r}" ${p.role === r ? 'selected' : ''}>${esc(t('role_' + r))}</option>`).join('')}</select>
+      </li>`,
+            )
+            .join('')}</ul>`
+        : `<p class="muted">${esc(t('connecting'))}</p>`
+    }
+    ${
+      data?.invites?.length
+        ? `<h2 class="section-title">${esc(t('pendingInvites'))}</h2><ul class="list">${data.invites
+            .map((i) => `<li class="acc-row"><span class="lr-main"><b>${esc(i.name || Cloud.shownLogin(i.email))}</b><small>${esc(Cloud.shownLogin(i.email))} · ${esc(t('role_' + i.role))}</small></span><button class="btn sm ghost" data-act="cancel-invite" data-email="${esc(i.email)}">${esc(t('cancelInvite'))}</button></li>`)
+            .join('')}</ul>`
+        : ''
+    }
+  `,
+    { title: t('accounts'), backTo: ['options', t('navOptions')] },
+  );
+}
+
+async function loadAccounts() {
+  ui.accountsLoading = true;
+  try {
+    ui.accounts = await Cloud.listAccounts();
+  } catch (e) {
+    ui.accountMsg = { ok: false, text: e.message || String(e) };
+  }
+  ui.accountsLoading = false;
+  if (route.name === 'accounts') render();
+}
+
+// ---------------------------------------------------------------- printable plan
+
+// Browsers only print from a top-level page; embedded previews ignore window.print().
+const CAN_PRINT = (() => {
+  try {
+    return window.self === window.top;
+  } catch {
+    return false;
+  }
+})();
+
+function viewPrint() {
+  const plan = S.getPlan(state, route.id);
+  if (!plan) return viewPlans();
+  const tl = S.timeline(state, plan);
+  const total = S.planMinutes(plan);
+  const equipment = [...new Set(tl.filter((x) => x.activity && x.activity.category !== 'break').map((x) => tx(x.activity.equipment)).filter((e) => e && !/^(none|nimic)$/i.test(e.trim())))];
+  const players = S.activePlayers(state);
+  const rows = tl
+    .map((x, i) => {
+      const a = x.activity || { title: '?', category: 'break' };
+      return `<tr><td class="num">${S.clock(x.start)}–${S.clock(x.end)}</td><td class="num">${x.block.duration}</td><td><span class="dot bg-${a.category}"></span><b>${i + 1}. ${esc(tx(a.title))}</b></td><td>${esc(txList(a.coaching)[0] || '')}</td></tr>`;
+    })
+    .join('');
+  const acts = tl
+    .filter((x) => x.activity && x.activity.category !== 'break')
+    .map((x) => {
+      const a = x.activity;
+      const i = tl.indexOf(x) + 1;
+      const d = renderDiagram(a.diagram, { title: tx(a.title) });
+      const coaching = txList(a.coaching);
+      const para = (label, v) => (tx(v) ? `<p><b>${esc(label)}:</b> ${nl(tx(v))}</p>` : '');
+      return `<section class="doc-act">
+        <header class="doc-act-head">
+          <span class="doc-time">${S.clock(x.start)}–${S.clock(x.end)}</span>
+          <h2>${i}. ${esc(tx(a.title))}</h2>
+          <span class="doc-meta">${esc(t('cat_' + a.category))} · ${x.block.duration} ${esc(t('min'))}${a.ages ? ` · ${agesLabel(a.ages)}` : ''}${a.rounds ? ` · ${esc(roundsText(a.rounds))}` : ''}</span>
+        </header>
+        ${x.block.note ? `<p class="doc-note">${esc(x.block.note)}</p>` : ''}
+        <div class="doc-act-body">
+          <div class="doc-text">
+            ${para(t('setup'), a.setup)}
+            ${para(t('howTo'), a.howTo)}
+            ${coaching.length ? `<p><b>${esc(t('coaching'))}:</b></p><ul>${coaching.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+            ${para(t('easier'), a.easier)}
+            ${para(t('harder'), a.harder)}
+            ${a.calls?.length ? `<p><b>${esc(t('calls'))}:</b> ${a.calls.map((c) => esc(tx(c))).join(' · ')}</p>` : ''}
+            ${para(t('equipment'), a.equipment)}
+          </div>
+          ${d ? `<figure class="doc-dg">${d.svg}<figcaption class="legend">${d.legend.map((l) => `<span>${legendSwatch(l.key)}${esc(l.label)}</span>`).join('')}</figcaption></figure>` : ''}
+        </div>
+      </section>`;
+    })
+    .join('');
+
+  return shell(
+    `
+    <div class="print-bar no-print">
+      ${CAN_PRINT ? `<button class="btn primary lg" data-act="print">${icon('print')}${esc(t('printBtn'))}</button><p class="muted sm">${esc(t('printHint'))}</p>` : `<p class="notice">${esc(t('printBlocked'))}</p>`}
+    </div>
+    <article class="doc">
+      <header class="doc-head">
+        ${CREST}
+        <div>
+          <div class="doc-club">${esc(t('appName'))} · ${esc(t('sessionPlan'))}</div>
+          <h1>${esc(planTitle(plan))}</h1>
+          <p>${esc(fmtDate(plan.date))} · ${esc(plan.team || '')} · ${total} ${esc(t('min'))} · ${tl.length} ${esc(t('activities'))}</p>
+        </div>
+      </header>
+      ${plan.focus ? `<p class="doc-focus"><b>${esc(t('theme'))}:</b> ${esc(plan.focus)}</p>` : ''}
+      ${plan.notes ? `<p class="doc-focus">${nl(plan.notes)}</p>` : ''}
+      <section class="doc-sec">
+        <h2>${esc(t('schedule'))}</h2>
+        <div class="table-wrap"><table class="doc-table">
+          <thead><tr><th>${esc(t('colTime'))}</th><th>${esc(t('colMin'))}</th><th>${esc(t('colActivity'))}</th><th>${esc(t('colKey'))}</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </section>
+      <section class="doc-sec doc-two">
+        <div><h2>${esc(t('equipmentList'))}</h2><ul class="checklist">${equipment.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>
+        ${players.length ? `<div><h2>${esc(t('register'))}</h2><ul class="checklist cols">${players.map((p) => `<li>${esc(p.name)}${p.number ? ` <small>#${esc(p.number)}</small>` : ''}</li>`).join('')}</ul></div>` : ''}
+      </section>
+      ${acts}
+      <section class="doc-sec doc-keep">
+        <h2>${esc(t('reminders'))}</h2>
+        <ul>${tipsFor(ageOf(plan.team)).map((g) => `<li>${esc(tx(g))}</li>`).join('')}</ul>
+      </section>
+      <section class="doc-sec doc-keep">
+        <h2>${esc(t('afterNotes'))}</h2>
+        <div class="lines"></div>
+      </section>
+    </article>
+  `,
+    { backTo: ['plan', planTitle(plan), plan.id] },
   );
 }
 
@@ -1230,7 +1569,7 @@ const actions = {
     T.unlockAudio();
     const existing = S.activeRun(state);
     const run = existing || S.startRun(state, plan);
-    S.save(state, { now: true });
+    persist(true);
     go('run', run.id);
   },
   dur(el) {
@@ -1262,6 +1601,7 @@ const actions = {
   },
   'open-picker'(el) {
     ui.sheet = { type: 'picker', planId: el.dataset.id };
+    ui.pickAge = ageOf(S.getPlan(state, el.dataset.id)?.team);
     render();
     document.getElementById('pick-search')?.focus({ preventScroll: true });
   },
@@ -1276,6 +1616,19 @@ const actions = {
     commit();
     render();
     toast(t('addedTo', { name: planTitle(plan) }) + ' · ' + tx(a.title));
+  },
+  'from-template'(el) {
+    const tpl = TEMPLATES.find((x) => x.id === el.dataset.id);
+    const p = S.planFromTemplate(state, tpl, getLang());
+    commit();
+    go('plan', p.id);
+  },
+  print() {
+    try {
+      window.print();
+    } catch {
+      /* the print dialog is optional */
+    }
   },
   'dup-plan'(el) {
     const p = S.getPlan(state, el.dataset.id);
@@ -1363,7 +1716,7 @@ const actions = {
   },
   'save-player-note'(el) {
     const p = S.getPlayer(state, el.dataset.id);
-    const n = S.addNote(state, { playerId: p.id, text: ui.playerNoteText, context: t('general') });
+    const n = S.addNote(state, { playerId: p.id, text: ui.playerNoteText, context: t('general'), createdBy: myId() });
     if (!n) return;
     ui.playerNoteText = '';
     commit();
@@ -1379,7 +1732,9 @@ const actions = {
   // settings
   lang(el) {
     state.settings.lang = el.dataset.l;
+    state.settings.langChosen = true;
     setLang(el.dataset.l);
+    S.relocalize(state, el.dataset.l);
     commit();
     render();
   },
@@ -1430,7 +1785,7 @@ const actions = {
     const fresh = S.emptyState(getLang());
     Object.keys(state).forEach((k) => delete state[k]);
     Object.assign(state, fresh, { seeded: true });
-    S.save(state, { now: true });
+    persist(true);
     ui.confirm = null;
     go('today', null, { replace: true });
     toast(t('resetDone'));
@@ -1562,7 +1917,7 @@ const actions = {
     const step = run.steps[run.step];
     const context = step ? tx(stepActivity(step).title) : run.step < 0 ? t('attendance') : t('finishTitle');
     const playerId = ui.noteFor === 'session' ? null : ui.noteFor;
-    const n = S.addNote(state, { playerId, text: ui.noteText, runId: run.id, context });
+    const n = S.addNote(state, { playerId, text: ui.noteText, runId: run.id, context, createdBy: myId() });
     if (!n) return;
     const p = playerId && S.getPlayer(state, playerId);
     ui.noteText = '';
@@ -1574,14 +1929,46 @@ const actions = {
   'finish-run'() {
     const run = currentRun();
     S.finishRun(state, run);
-    S.save(state, { now: true });
+    persist(true);
     go('summary', run.id, { replace: true });
   },
   'discard-run'() {
     const run = currentRun();
     S.discardRun(state, run);
-    S.save(state, { now: true });
+    persist(true);
     go('today', null, { replace: true });
+  },
+  async 'sign-out'() {
+    await Cloud.signOut();
+    for (const k of ['activities', 'plans', 'players', 'notes', 'runs']) state[k] = [];
+    state.activeRunId = null;
+    ui.accounts = null;
+    go('login', null, { replace: true });
+  },
+  async recheck() {
+    go('loading', null, { replace: true });
+    await Cloud.start(state, cloudHandlers);
+    go('today', null, { replace: true });
+  },
+  'toggle-password'() {
+    ui.pwOpen = !ui.pwOpen;
+    render();
+    if (ui.pwOpen) document.getElementById('new-password')?.focus();
+  },
+  'upload-device'() {
+    const n = S.mergeInto(state, S.loadDeviceData() || {});
+    commit();
+    render();
+    toast(t('uploaded', { n }));
+  },
+  async 'cancel-invite'(el) {
+    try {
+      await Cloud.cancelInvite(el.dataset.email);
+      ui.accounts = null;
+      render();
+    } catch (e) {
+      toast(e.message || String(e));
+    }
   },
   'delete-run'(el) {
     const run = S.getRun(state, el.dataset.id);
@@ -1603,12 +1990,23 @@ function showCall(c) {
 }
 
 function importBackup(text) {
+  if (CLUB) {
+    try {
+      const n = S.mergeInto(state, S.parseBackup(text, getLang()));
+      commit();
+      go('today', null, { replace: true });
+      toast(t('uploaded', { n }));
+    } catch {
+      toast(t('importBad'));
+    }
+    return;
+  }
   try {
     const fresh = S.parseBackup(text, getLang());
     Object.keys(state).forEach((k) => delete state[k]);
     Object.assign(state, fresh);
     setLang(state.settings.lang);
-    S.save(state, { now: true });
+    persist(true);
     go('today', null, { replace: true });
     toast(t('importOk'));
   } catch {
@@ -1664,10 +2062,33 @@ const binds = {
   setting(el) {
     state.settings[el.dataset.f] = el.checked;
   },
+  'account-role'(el) {
+    Cloud.setRole(el.dataset.id, el.value).then(
+      () => {
+        toast(t('roleChanged'));
+        ui.accounts = null;
+        render();
+      },
+      (e) => toast(e.message || String(e)),
+    );
+    return false;
+  },
   'lib-q'(el) {
     ui.q = el.value;
     const grid = document.getElementById('lib-grid');
-    if (grid) grid.innerHTML = libraryCards(S.searchActivities(S.allActivities(state), { q: ui.q, category: ui.category }));
+    if (grid) grid.innerHTML = libraryCards(S.searchActivities(S.allActivities(state), { q: ui.q, category: ui.category, age: ui.age }));
+    return false;
+  },
+  'lib-age'(el) {
+    ui.age = Number(el.value) || null;
+    const grid = document.getElementById('lib-grid');
+    if (grid) grid.innerHTML = libraryCards(S.searchActivities(S.allActivities(state), { q: ui.q, category: ui.category, age: ui.age }));
+    return false;
+  },
+  'pick-age'(el) {
+    ui.pickAge = Number(el.value) || null;
+    const list = document.getElementById('pick-list');
+    if (list) list.innerHTML = pickerList();
     return false;
   },
   'pick-q'(el) {
@@ -1702,6 +2123,20 @@ document.addEventListener('submit', (e) => {
   e.preventDefault();
   const form = e.target;
   if (form.dataset.form === 'activity') saveDraft();
+  if (form.dataset.form === 'login') doLogin(form);
+  if (form.dataset.form === 'new-account') doCreateAccount(form);
+  if (form.dataset.form === 'password') {
+    const pw = form.elements.password.value;
+    if (pw.length < 8) return toast(t('passwordShort'));
+    Cloud.changePassword(pw).then(
+      () => {
+        ui.pwOpen = false;
+        render();
+        toast(t('passwordChanged'));
+      },
+      (err) => toast(err.message || String(err)),
+    );
+  }
   if (form.dataset.form === 'add-player' || form.dataset.form === 'add-player-run') {
     const name = form.elements.name.value;
     const number = form.elements.number?.value || '';
@@ -1732,14 +2167,93 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-window.addEventListener('pagehide', () => S.save(state, { now: true }));
+window.addEventListener('pagehide', () => persist(true));
 
-try {
-  history.replaceState({ route }, '', '#' + SECTIONS[route.name]);
-} catch {
-  /* optional */
+async function doLogin(form) {
+  const login = form.elements.login.value;
+  ui.loginError = '';
+  ui.loggingIn = true;
+  render();
+  try {
+    await Cloud.signIn(login, form.elements.password.value);
+    ui.loggingIn = false;
+    go('today', null, { replace: true });
+  } catch (e) {
+    ui.loggingIn = false;
+    ui.loginError = /fetch|network/i.test(e?.message || '') ? t('loginOffline') : t('loginFailed');
+    render();
+    const id = document.getElementById('login-id');
+    if (id) id.value = login;
+    document.getElementById('login-pw')?.focus();
+  }
 }
-render();
+
+async function doCreateAccount(form) {
+  const f = form.elements;
+  const vals = { name: f.name.value.trim(), login: f.login.value.trim(), password: f.password.value, role: f.role.value };
+  if (!vals.login) return document.getElementById('acc-login')?.focus();
+  if (vals.password.length < 8) {
+    ui.accountMsg = { ok: false, text: t('passwordShort') };
+    return render();
+  }
+  ui.accountBusy = true;
+  render();
+  try {
+    const res = await Cloud.createAccount(vals);
+    ui.accountMsg = { ok: true, text: t(res.existed ? 'accountExisted' : res.needsConfirm ? 'accountNeedsConfirm' : 'accountCreated', { login: res.login }) };
+    ui.accounts = null;
+  } catch (e) {
+    ui.accountMsg = { ok: false, text: t('accountFailed', { msg: e.message || String(e) }) };
+  }
+  ui.accountBusy = false;
+  render();
+}
+
+// Re-render after new data arrives, but never while someone is typing.
+function refreshFromClub() {
+  const el = document.activeElement;
+  if (el && el.matches('input, textarea, select')) {
+    el.addEventListener('blur', () => setTimeout(refreshFromClub, 0), { once: true });
+    return;
+  }
+  if (route.name === 'accounts' || route.name === 'login') return;
+  const y = window.scrollY;
+  render();
+  window.scrollTo(0, y);
+}
+
+const cloudHandlers = {
+  onData: refreshFromClub,
+  onStatus: (st) => {
+    const el = document.getElementById('sync-badge');
+    if (!el) return;
+    el.className = `sync sync-${st}`;
+    el.title = t('sync_' + st);
+    el.setAttribute('aria-label', t('sync_' + st));
+  },
+};
+
+async function boot() {
+  try {
+    history.replaceState({ route }, '', '#' + SECTIONS[route.name]);
+  } catch {
+    /* optional */
+  }
+  if (!CLUB) return render();
+  const wanted = route;
+  route = { name: 'loading' };
+  render();
+  try {
+    await Cloud.start(state, cloudHandlers);
+  } catch {
+    /* no connection and no saved login: shown as the login screen */
+  }
+  route = Cloud.getProfile() ? (['login', 'loading'].includes(wanted.name) ? { name: 'today' } : wanted) : { name: 'login' };
+  render();
+}
+
+boot();
+
 
 // Offline support when served from a normal web host.
 if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !/claude|claudeusercontent/.test(location.hostname)) {

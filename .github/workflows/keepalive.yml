@@ -1,0 +1,27 @@
+name: Keep the club database awake
+
+# Free Supabase projects pause after 7 days without use. This calls a tiny
+# function in the database every 3 days so the app is always ready.
+# It uses the repository variables SUPABASE_URL and SUPABASE_ANON_KEY if they
+# are set, otherwise the values in js/config.js.
+
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ping the database
+        env:
+          URL: ${{ vars.SUPABASE_URL }}
+          KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          URL="${URL:-$(grep -oP "SUPABASE_URL = '\K[^']+" js/config.js || true)}"
+          KEY="${KEY:-$(tr -d '\n' < js/config.js | grep -oP "SUPABASE_ANON_KEY =\s*'\K[^']+" || true)}"
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then echo "No club database configured; nothing to do."; exit 0; fi
+          curl --fail --silent --show-error -X POST "$URL/rest/v1/rpc/ping" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d '{}'

@@ -1,7 +1,7 @@
 {
-  "name": "Royal Club Coach",
+  "name": "Royal Club Antrenamente",
   "short_name": "Royal Club",
-  "description": "Plan and run youth football training sessions.",
+  "description": "Planifică și ține antrenamente de fotbal pentru copii.",
   "start_url": "./index.html#today",
   "scope": "./",
   "display": "standalone",
@@ -9,6 +9,12 @@
   "background_color": "#eef1f8",
   "theme_color": "#1c3fa8",
   "icons": [
-    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
-  ]
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "lang": "ro"
 }

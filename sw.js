@@ -1,5 +1,5 @@
 // Offline cache so the app opens at the pitch without signal.
-const CACHE = 'royal-club-v1';
+const CACHE = 'royal-club-v3';
 const FILES = [
   './',
   './index.html',
@@ -7,9 +7,14 @@ const FILES = [
   './js/app.js',
   './js/i18n.js',
   './js/library.js',
+  './js/library-more.js',
+  './js/diagram-helpers.js',
   './js/diagram.js',
   './js/store.js',
   './js/timer.js',
+  './js/config.js',
+  './js/cloud.js',
+  './js/sync.js',
   './manifest.webmanifest',
   './icons/icon.svg',
 ];
@@ -30,7 +35,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        if (res.ok && (new URL(e.request.url).origin === location.origin || e.request.url.includes('fonts.g'))) {
+        if (res.ok && (new URL(e.request.url).origin === location.origin || e.request.url.includes('fonts.g') || e.request.url.includes('cdn.jsdelivr.net/npm/@supabase'))) {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(e.request, copy));
         }

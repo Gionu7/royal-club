@@ -3,41 +3,8 @@
 
 export const CATEGORIES = ['arrival', 'warmup', 'technical', 'game', 'cooldown', 'break'];
 
-// ---------- diagram helpers ----------
-
-function mulberry32(seed) {
-  return function () {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let r = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/** Spread n players over a box on a jittered grid so they never overlap. */
-function spread(n, seed, box, extra = {}) {
-  const rnd = mulberry32(seed);
-  const cols = Math.ceil(Math.sqrt((n * box.w) / box.h));
-  const rows = Math.ceil(n / cols);
-  const cw = box.w / cols;
-  const rh = box.h / rows;
-  const out = [];
-  for (let i = 0; i < n; i++) {
-    const c = i % cols;
-    const r = Math.floor(i / cols);
-    out.push({
-      t: 'p',
-      x: box.x + cw * (c + 0.25 + rnd() * 0.5),
-      y: box.y + rh * (r + 0.25 + rnd() * 0.5),
-      dir: rnd() * Math.PI * 2,
-      ...extra,
-    });
-  }
-  return out;
-}
-
-const field = (w, h, extra = {}) => ({ t: 'area', x: 0, y: 0, w, h, pitch: true, ...extra });
+import { spread, field } from './diagram-helpers.js';
+import { MORE } from './library-more.js';
 
 // ---------- shared localized bits ----------
 
@@ -49,7 +16,7 @@ const L = {
 
 // ---------- activities ----------
 
-export const LIBRARY = [
+const BASE = [
   {
     id: 'free-dribble',
     category: 'arrival',
@@ -743,7 +710,6 @@ export const LIBRARY = [
       en: 'Drink, catch your breath, and listen to the next game.',
       ro: 'Apă, odihnă și ascultarea următorului joc.',
     },
-    players: L.kids12,
     space: { en: 'By the bottles', ro: 'La sticlele cu apă' },
     equipment: { en: 'Water bottles', ro: 'Sticle cu apă' },
     setup: { en: 'Bottles lined up in one spot, away from the pitches.', ro: 'Sticlele așezate într-un singur loc, departe de terenuri.' },
@@ -760,8 +726,94 @@ export const LIBRARY = [
   },
 ];
 
-/** Coach notes that apply to the whole session, shown on the run screen. */
-export const GENERAL_TIPS = [
+// Age ranges for the activities above (U-min to U-max).
+const BASE_AGES = {
+  'free-dribble': [5, 8],
+  'muscle-warmup': [6, 10],
+  'traffic-light': [5, 8],
+  'sharks-minnows': [5, 9],
+  'gate-passing': [6, 10],
+  'goal-attack': [6, 10],
+  '3v3-two-pitches': [6, 9],
+  'finale-shoot-coach': [5, 9],
+  'animal-moves': [5, 7],
+  'coloured-cones': [5, 8],
+  'pirate-treasure': [5, 9],
+  'clean-garden': [6, 9],
+  '3v3-four-goals': [7, 10],
+  'body-part-stop': [5, 7],
+  'gate-dribble': [6, 10],
+  'water-break': [4, 12],
+};
+for (const a of BASE) a.ages = BASE_AGES[a.id];
+
+export const LIBRARY = [...BASE, ...MORE];
+
+/** Romanian names for the skill tags used in the library. */
+const SKILL_RO = {
+  dribbling: 'dribling',
+  'ball control': 'controlul mingii',
+  coordination: 'coordonare',
+  'warm-up': 'încălzire',
+  listening: 'ascultare',
+  shielding: 'protejarea mingii',
+  turning: 'întoarceri',
+  passing: 'pase',
+  'first touch': 'prima atingere',
+  shooting: 'șut',
+  game: 'joc',
+  'finding space': 'găsirea spațiului',
+  fun: 'distracție',
+  'cool-down': 'revenire',
+  balance: 'echilibru',
+  'stopping the ball': 'oprirea mingii',
+  teamwork: 'lucru în echipă',
+  'quick decisions': 'decizii rapide',
+  'striking the ball': 'lovirea mingii',
+  accuracy: 'precizie',
+  scanning: 'privire peste umăr',
+  'switching play': 'schimbarea jocului',
+  'changing direction': 'schimbarea direcției',
+  rest: 'odihnă',
+  touch: 'atingere',
+  speed: 'viteză',
+  'support angles': 'unghiuri de sprijin',
+  '1 v 1': '1 contra 1',
+  defending: 'apărare',
+  receiving: 'preluare',
+  movement: 'mișcare',
+  'decision making': 'luarea deciziilor',
+  timing: 'sincronizare',
+  'passing forward': 'pase înainte',
+  'running with the ball': 'conducerea mingii',
+  possession: 'posesie',
+  support: 'sprijin',
+  'build-up play': 'construcție',
+  goalkeeping: 'portar',
+  reflection: 'reflecție',
+};
+
+/** A skill tag as {en, ro}; tags typed by a coach pass through unchanged. */
+export function skillText(k) {
+  return SKILL_RO[k] ? { en: k, ro: SKILL_RO[k] } : k;
+}
+
+/** Age groups the app knows about, for filters and forms. */
+export const AGE_GROUPS = [5, 6, 7, 8, 9, 10, 11, 12];
+
+/** "U7" → 7, anything else → null. */
+export function ageOf(team) {
+  const m = /U\s?(\d{1,2})/i.exec(team || '');
+  return m ? Number(m[1]) : null;
+}
+
+export function agesLabel(ages) {
+  if (!ages) return '';
+  return ages[0] === ages[1] ? `U${ages[0]}` : `U${ages[0]}–U${ages[1]}`;
+}
+
+/** Coach reminders for the whole session, by age band. */
+const TIPS_YOUNG = [
   { en: 'Instructions: 20 seconds at most. Demonstrate first, then let them play.', ro: 'Instrucțiuni: cel mult 20 de secunde. Demonstrați mai întâi, apoi lăsați-i să joace.' },
   { en: 'No queues: never more than 3–4 children waiting. If a queue forms, add a ball or a goal.', ro: 'Fără cozi: niciodată mai mult de 3–4 copii care așteaptă. Dacă se formează o coadă, adăugați o minge sau o poartă.' },
   { en: 'No elimination: every game keeps all children playing.', ro: 'Fără eliminări: fiecare joc îi ține pe toți copiii în joc.' },
@@ -769,25 +821,107 @@ export const GENERAL_TIPS = [
   { en: 'Quieter children: pair them with a friendly partner and give them early touches.', ro: 'Copiii mai timizi: puneți-i cu un partener prietenos și dați-le atingeri devreme.' },
   { en: 'Safety: soft cones, clear stray balls, spare balls behind the goals.', ro: 'Siguranță: conuri moi, curățați terenurile de mingi rătăcite, mingile de rezervă în spatele porților.' },
 ];
+const TIPS_OLDER = [
+  { en: 'Ask more than you tell: “What did you see?”, “What else could you do?”', ro: 'Întrebați mai mult decât spuneți: „Ce ai văzut?”, „Ce altceva puteai face?”' },
+  { en: 'Freeze play rarely: 2–3 times per game, 30 seconds each, then let them play.', ro: 'Opriți jocul rar: de 2–3 ori pe joc, câte 30 de secunde, apoi lăsați-i să joace.' },
+  { en: 'Keep everyone active: no lines longer than three; add a second ball or goal.', ro: 'Toți activi: niciun șir mai lung de trei; adăugați a doua minge sau poartă.' },
+  { en: 'Encourage scanning: look over the shoulder before receiving.', ro: 'Încurajați privirea peste umăr înainte de primirea mingii.' },
+  { en: 'Rotate positions, including keeper, so every child tries everything.', ro: 'Rotiți posturile, inclusiv portarul, ca fiecare copil să încerce tot.' },
+  { en: 'Praise good decisions and effort, not only goals.', ro: 'Lăudați deciziile bune și efortul, nu doar golurile.' },
+  { en: 'Water every 15–20 minutes, more in the heat.', ro: 'Apă la fiecare 15–20 de minute, mai des pe căldură.' },
+];
 
-/** The 60-minute U7 plan from the club PDF, used to seed a first session. */
-export const SAMPLE_PLAN = {
-  name: { en: 'U7 · 60 min · Lots of touches', ro: 'U7 · 60 min · Multe atingeri de minge' },
-  team: 'U7',
-  target: 60,
-  focus: {
-    en: 'Lots of touches, fun, first steps in dribbling, passing and shooting with both feet.',
-    ro: 'Multe atingeri de minge, distracție și primii pași în dribling, pase și șuturi cu ambele picioare.',
+export function tipsFor(age) {
+  return age && age >= 9 ? TIPS_OLDER : TIPS_YOUNG;
+}
+
+/** Ready-made sessions, youngest first. The U7 one is the club's PDF and seeds a new install. */
+export const TEMPLATES = [
+  {
+    id: 'u5-45',
+    name: { en: 'U5–U6 · 45 min · Play and move', ro: 'U5–U6 · 45 min · Joacă și mișcare' },
+    team: 'U6',
+    target: 45,
+    focus: {
+      en: 'Fun with the ball, listening games, short bursts and lots of praise.',
+      ro: 'Distracție cu mingea, jocuri de ascultare, eforturi scurte și multă încurajare.',
+    },
+    blocks: [
+      ['follow-leader', 4],
+      ['animal-moves', 4],
+      ['traffic-light', 4],
+      ['water-break', 2],
+      ['pirate-treasure', 8],
+      ['body-part-stop', 4],
+      ['water-break', 2],
+      ['3v3-two-pitches', 12],
+      ['finale-shoot-coach', 5],
+    ],
   },
-  blocks: [
-    ['free-dribble', 5],
-    ['traffic-light', 3],
-    ['sharks-minnows', 7],
-    ['water-break', 2],
-    ['gate-passing', 5],
-    ['goal-attack', 5],
-    ['water-break', 2],
-    ['3v3-two-pitches', 25],
-    ['finale-shoot-coach', 6],
-  ],
-};
+  {
+    id: 'u7-60',
+    name: { en: 'U7 · 60 min · Lots of touches', ro: 'U7 · 60 min · Multe atingeri de minge' },
+    team: 'U7',
+    target: 60,
+    focus: {
+      en: 'Lots of touches, fun, first steps in dribbling, passing and shooting with both feet.',
+      ro: 'Multe atingeri de minge, distracție și primii pași în dribling, pase și șuturi cu ambele picioare.',
+    },
+    blocks: [
+      ['free-dribble', 5],
+      ['traffic-light', 3],
+      ['sharks-minnows', 7],
+      ['water-break', 2],
+      ['gate-passing', 5],
+      ['goal-attack', 5],
+      ['water-break', 2],
+      ['3v3-two-pitches', 25],
+      ['finale-shoot-coach', 6],
+    ],
+  },
+  {
+    id: 'u10-75',
+    name: { en: 'U9–U10 · 75 min · 1 v 1 and passing', ro: 'U9–U10 · 75 min · 1 contra 1 și pase' },
+    team: 'U10',
+    target: 75,
+    focus: {
+      en: 'Beat a player 1 v 1, pass and move, finish quickly.',
+      ro: 'Depășirea adversarului în 1 contra 1, pase și mișcare, finalizare rapidă.',
+    },
+    blocks: [
+      ['juggling-challenge', 5],
+      ['partner-passing', 8],
+      ['rondo-4v1', 10],
+      ['water-break', 2],
+      ['1v1-gates', 8],
+      ['give-and-go-shooting', 8],
+      ['water-break', 2],
+      ['end-zone-game', 12],
+      ['5v5-keepers', 14],
+      ['cooldown-review', 6],
+    ],
+  },
+  {
+    id: 'u12-90',
+    name: { en: 'U11–U12 · 90 min · Keep the ball', ro: 'U11–U12 · 90 min · Păstrarea mingii' },
+    team: 'U12',
+    target: 90,
+    focus: {
+      en: 'Possession: support angles, scanning, playing out from the back.',
+      ro: 'Posesie: unghiuri de sprijin, privire peste umăr, construcție de la poartă.',
+    },
+    blocks: [
+      ['dynamic-warmup', 8],
+      ['passing-square', 10],
+      ['rondo-4v1', 10],
+      ['water-break', 2],
+      ['2v1-to-goal', 10],
+      ['possession-4v4-2', 12],
+      ['water-break', 2],
+      ['5v5-keepers', 30],
+      ['cooldown-review', 6],
+    ],
+  },
+];
+
+export const SAMPLE_PLAN = TEMPLATES.find((tpl) => tpl.id === 'u7-60');

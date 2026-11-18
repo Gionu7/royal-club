@@ -1,6 +1,6 @@
 // App data: plans, custom activities, players, notes and session runs.
 // Saved to localStorage on this device. Pure helpers are exported for tests.
-import { LIBRARY, SAMPLE_PLAN } from './library.js';
+import { LIBRARY, SAMPLE_PLAN, TEMPLATES, ageOf, skillText } from './library.js';
 import { newTimer } from './timer.js';
 
 const KEY = 'royalclub.v1';
@@ -15,10 +15,10 @@ export function today() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export function emptyState(lang = 'en') {
+export function emptyState(lang = 'ro') {
   return {
     v: SCHEMA,
-    settings: { lang, sound: true, vibrate: true, autoStart: false },
+    settings: { lang, langChosen: false, sound: true, vibrate: true, autoStart: false },
     activities: [],
     plans: [],
     players: [],
@@ -29,22 +29,30 @@ export function emptyState(lang = 'en') {
   };
 }
 
+/** Creates a plan from a template (see TEMPLATES in library.js). */
+export function planFromTemplate(state, tpl, lang = 'en') {
+  const now = Date.now();
+  const plan = {
+    id: uid(),
+    templateId: tpl.id,
+    name: tpl.name[lang] || tpl.name.en,
+    team: tpl.team,
+    date: today(),
+    target: tpl.target,
+    focus: tpl.focus[lang] || tpl.focus.en,
+    notes: '',
+    blocks: tpl.blocks.map(([activityId, duration]) => ({ id: uid(), activityId, duration, note: '' })),
+    createdAt: now,
+    updatedAt: now,
+  };
+  state.plans.unshift(plan);
+  return plan;
+}
+
 /** Adds the club's 60-minute U7 plan the first time the app opens. */
 export function seed(state, lang = 'en') {
   if (state.seeded) return state;
-  const now = Date.now();
-  state.plans.push({
-    id: uid(),
-    name: SAMPLE_PLAN.name[lang] || SAMPLE_PLAN.name.en,
-    team: SAMPLE_PLAN.team,
-    date: today(),
-    target: SAMPLE_PLAN.target,
-    focus: SAMPLE_PLAN.focus[lang] || SAMPLE_PLAN.focus.en,
-    notes: '',
-    blocks: SAMPLE_PLAN.blocks.map(([activityId, duration]) => ({ id: uid(), activityId, duration, note: '' })),
-    createdAt: now,
-    updatedAt: now,
-  });
+  planFromTemplate(state, SAMPLE_PLAN, lang);
   state.seeded = true;
   return state;
 }
@@ -54,7 +62,30 @@ export function normalize(raw, lang) {
   if (!raw || typeof raw !== 'object') return base;
   const s = { ...base, ...raw, settings: { ...base.settings, ...(raw.settings || {}) } };
   for (const k of ['activities', 'plans', 'players', 'notes', 'runs']) if (!Array.isArray(s[k])) s[k] = [];
+  // Romanian is the club's language: use it unless the coach picked another one.
+  if (!s.settings.langChosen) s.settings.lang = 'ro';
+  relocalize(s, s.settings.lang);
   return s;
+}
+
+/**
+ * Plans made from a template keep its name and theme in the language they were
+ * created in. Switch them to `lang`, unless the coach has changed the text.
+ */
+export function relocalize(state, lang) {
+  const swap = (text, field) => {
+    for (const tpl of TEMPLATES) {
+      const v = tpl[field];
+      if (text && Object.values(v).includes(text)) return v[lang] || v.en;
+    }
+    return text;
+  };
+  for (const p of state.plans || []) {
+    p.name = swap(p.name, 'name');
+    p.focus = swap(p.focus, 'focus');
+  }
+  for (const r of state.runs || []) r.planName = swap(r.planName, 'name');
+  return state;
 }
 
 export function load(lang) {
@@ -66,6 +97,58 @@ export function load(lang) {
   }
   const state = normalize(raw, lang);
   return seed(state, state.settings.lang || lang);
+}
+
+const SETTINGS_KEY = 'royalclub.settings.v1';
+
+/** Club mode keeps data in the club database; only this device's settings live here. */
+export function saveSettings(state) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ settings: state.settings }));
+  } catch {
+    /* optional */
+  }
+}
+
+export function loadSettings(fallbackLang = 'ro') {
+  const base = emptyState(fallbackLang);
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null') || JSON.parse(localStorage.getItem(KEY) || 'null');
+  } catch {
+    saved = null;
+  }
+  base.settings = { ...base.settings, ...(saved?.settings || {}) };
+  if (!base.settings.langChosen) base.settings.lang = 'ro';
+  base.seeded = true;
+  return base;
+}
+
+/** Data saved on this device before the club database was set up, if any. */
+export function loadDeviceData() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (!raw) return null;
+    const s = normalize(raw, 'ro');
+    const count = s.plans.length + s.players.length + s.runs.length + s.notes.length + s.activities.length;
+    return count ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Adds items from another state (a backup, or this device's old data); same ids are replaced. */
+export function mergeInto(state, other) {
+  let n = 0;
+  for (const k of ['activities', 'plans', 'players', 'notes', 'runs']) {
+    const byId = new Map(state[k].map((x) => [x.id, x]));
+    for (const item of other[k] || []) {
+      byId.set(item.id, item);
+      n++;
+    }
+    state[k] = [...byId.values()];
+  }
+  return n;
 }
 
 let saveTimer = null;
@@ -108,14 +191,17 @@ export function deleteActivity(state, id) {
   state.activities = state.activities.filter((a) => a.id !== id);
 }
 
+export { ageOf };
+
 /** Free-text search across title, summary, skills and how-to in both languages. */
-export function searchActivities(list, { q = '', category = 'all' } = {}) {
+export function searchActivities(list, { q = '', category = 'all', age = null } = {}) {
   const needle = q.trim().toLowerCase();
   const flat = (v) => (v == null ? '' : typeof v === 'string' ? v : Object.values(v).join(' '));
   return list.filter((a) => {
     if (category !== 'all' && a.category !== category) return false;
+    if (age && a.ages && (age < a.ages[0] || age > a.ages[1])) return false;
     if (!needle) return true;
-    const hay = [flat(a.title), flat(a.summary), (a.skills || []).join(' '), flat(a.howTo)].join(' ').toLowerCase();
+    const hay = [flat(a.title), flat(a.summary), (a.skills || []).map((k) => flat(skillText(k))).join(' '), flat(a.howTo)].join(' ').toLowerCase();
     return hay.includes(needle);
   });
 }
@@ -253,10 +339,11 @@ export function attendanceFor(state, playerId) {
 
 // ---------- notes ----------
 
-export function addNote(state, { playerId = null, text, runId = null, context = '' }) {
+export function addNote(state, { playerId = null, text, runId = null, context = '', createdBy = null }) {
   const clean = String(text || '').trim();
   if (!clean) return null;
   const note = { id: uid(), playerId, text: clean, runId, context, createdAt: Date.now() };
+  if (createdBy) note.createdBy = createdBy;
   state.notes.push(note);
   return note;
 }
