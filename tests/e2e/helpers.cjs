@@ -22,7 +22,7 @@ async function singleDevice(ctx, { english = false } = {}) {
   );
   if (english) {
     await ctx.addInitScript(() => {
-      if (!localStorage.getItem('royalclub.v1')) localStorage.setItem('royalclub.v1', JSON.stringify({ settings: { lang: 'en', langChosen: true } }));
+      if (!localStorage.getItem('royalclub.v1')) localStorage.setItem('royalclub.v1', JSON.stringify({ settings: { lang: 'en', langChosen: true, sv: 2 } }));
     });
   }
 }

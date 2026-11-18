@@ -60,7 +60,8 @@ const { BASE, outDir, singleDevice, finish } = require('./helpers.cjs');
     await page.click('.att:has-text("Maria")');
     await page.screenshot({ path: out + '/07-attendance.png', fullPage: true });
     await page.click('.run-nav [data-act="run-next"]');
-    await page.click('.timer [data-act="t-toggle"]');
+    // The timer starts by itself when an activity begins.
+    if (!(await page.$('.timer.running'))) throw new Error('timer did not start by itself');
     await page.waitForTimeout(1300);
     console.log('digits', await page.textContent('.t-digits'));
     await page.screenshot({ path: out + '/08-run-step.png', fullPage: true });
@@ -80,7 +81,7 @@ const { BASE, outDir, singleDevice, finish } = require('./helpers.cjs');
 
   await step('rounds', async () => {
     for (let i = 0; i < 4; i++) await page.click('.run-nav [data-act="run-next"]');
-    await page.click('.timer [data-act="t-toggle"]');
+    if (!(await page.$('.timer.running'))) throw new Error('rounds timer did not start by itself');
     await page.waitForTimeout(600);
     await page.screenshot({ path: out + '/11-rounds.png', fullPage: true });
     await page.click('.t-controls [data-act="t-big"]');

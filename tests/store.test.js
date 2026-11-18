@@ -133,3 +133,24 @@ test('age helpers', () => {
   assert.equal(agesLabel([7, 7]), 'U7');
   assert.notEqual(tipsFor(7), tipsFor(11));
 });
+
+test('a new install opens in Romanian with the timer starting by itself', () => {
+  const st = S.emptyState('ro').settings;
+  assert.equal(st.lang, 'ro');
+  assert.equal(st.autoStart, true);
+  assert.equal(S.normalize(null, 'ro').settings.autoStart, true);
+});
+
+test('settings saved before version 2 get the new defaults once, later choices stay', () => {
+  // A phone that saved the old defaults, or picked English earlier.
+  const old = S.normalize({ settings: { lang: 'en', langChosen: true, sound: false, autoStart: false } }, 'ro').settings;
+  assert.equal(old.autoStart, true);
+  assert.equal(old.lang, 'ro');
+  assert.equal(old.langChosen, false);
+  assert.equal(old.sound, false, 'other settings are kept');
+  assert.equal(old.sv, S.SETTINGS_V);
+  // Choices made after the upgrade are respected.
+  const later = S.normalize({ settings: { ...old, lang: 'en', langChosen: true, autoStart: false } }, 'ro').settings;
+  assert.equal(later.lang, 'en');
+  assert.equal(later.autoStart, false);
+});

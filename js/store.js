@@ -15,10 +15,15 @@ export function today() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// Version of the default settings. When a default changes, phones that saved the
+// old settings get the new default once (see withSettings).
+// 2: the timer starts by itself, and every phone opens in Romanian again.
+export const SETTINGS_V = 2;
+
 export function emptyState(lang = 'ro') {
   return {
     v: SCHEMA,
-    settings: { lang, langChosen: false, sound: true, vibrate: true, autoStart: false },
+    settings: { lang, langChosen: false, sound: true, vibrate: true, autoStart: true, sv: SETTINGS_V },
     activities: [],
     plans: [],
     players: [],
@@ -57,13 +62,24 @@ export function seed(state, lang = 'en') {
   return state;
 }
 
+/** Saved settings on top of the defaults, brought up to SETTINGS_V. */
+export function withSettings(defaults, saved) {
+  const st = { ...defaults, ...(saved || {}) };
+  if (saved && (Number(saved.sv) || 1) < 2) {
+    st.autoStart = true;
+    st.langChosen = false;
+  }
+  // Romanian is the club's language: use it unless the coach picked another one.
+  if (!st.langChosen) st.lang = 'ro';
+  st.sv = SETTINGS_V;
+  return st;
+}
+
 export function normalize(raw, lang) {
   const base = emptyState(lang);
   if (!raw || typeof raw !== 'object') return base;
-  const s = { ...base, ...raw, settings: { ...base.settings, ...(raw.settings || {}) } };
+  const s = { ...base, ...raw, settings: withSettings(base.settings, raw.settings) };
   for (const k of ['activities', 'plans', 'players', 'notes', 'runs']) if (!Array.isArray(s[k])) s[k] = [];
-  // Romanian is the club's language: use it unless the coach picked another one.
-  if (!s.settings.langChosen) s.settings.lang = 'ro';
   relocalize(s, s.settings.lang);
   return s;
 }
@@ -118,8 +134,7 @@ export function loadSettings(fallbackLang = 'ro') {
   } catch {
     saved = null;
   }
-  base.settings = { ...base.settings, ...(saved?.settings || {}) };
-  if (!base.settings.langChosen) base.settings.lang = 'ro';
+  base.settings = withSettings(base.settings, saved?.settings);
   base.seeded = true;
   return base;
 }

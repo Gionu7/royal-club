@@ -11,7 +11,7 @@ It runs in one of two modes:
 
 ## What it does
 
-**Library.** 30 activities for U5 to U12: every game from the U7 plan PDF in this repo (*Plan de antrenament – academia de fotbal U7*), more for the youngest groups, and drills and games for U8–U12 (rondo 4 v 1, 1 v 1 to two gates, 2 v 1 to goal, give-and-go shooting, passing square, end-zone game, possession 4 v 4 + 2, 5 v 5 with keepers, dynamic warm-up, stretch and review). Each one has an age range, setup, how it works, coaching points, easier/harder versions, equipment, a pitch diagram and, where it helps, coach calls ("Sole!", "Green!", "Bunny hops!"). Filter by age group and category (arrival, warm-up, technique, game, finish, break) or search in either language. You can add your own activities, or copy a built-in one and edit it.
+**Library.** 31 activities for U5 to U12: every game from the U7 plan PDF in this repo (*Plan de antrenament – academia de fotbal U7*), more for the youngest groups, and drills and games for U8–U12 (rondo 4 v 1, 1 v 1 to two gates, 2 v 1 to goal, give-and-go shooting, slalom, pass and shoot, passing square, end-zone game, possession 4 v 4 + 2, 5 v 5 with keepers, dynamic warm-up, stretch and review). Each one has an age range, setup, how it works, coaching points, easier/harder versions, equipment, a pitch diagram and, where it helps, coach calls ("Sole!", "Green!", "Bunny hops!"). Filter by age group and category (arrival, warm-up, technique, game, finish, break) or search in either language. You can add your own activities, or copy a built-in one and edit it.
 
 **Session builder.** Pick activities from the library, set the minutes for each block, reorder them, add water breaks and a note per block. The builder shows the running clock (0:00–0:05, 0:05–0:08 …), the total against your planned length and a colour bar of the session. The 60-minute U7 plan from the PDF is ready on first launch, and four templates (U5–U6 45 min, U7 60 min, U9–U10 75 min, U11–U12 90 min) give you a ready session for each age group. When you add activities to a session, the picker shows the ones that suit that session's age group first; you can switch it to any age.
 
@@ -21,7 +21,7 @@ It runs in one of two modes:
 
 1. **Who is here?** Tap the children who turned up (or add a new child on the spot).
 2. **One screen per activity**, with **Back / Next** at the bottom:
-   - a big timer: countdown, stopwatch, or **rounds** (e.g. 3 × 60 s with 30 s rest) that beeps and vibrates at each change; *+1 min*; a full-screen **Big timer** to show the kids
+   - a big timer: countdown, stopwatch, or **rounds** (e.g. 3 × 60 s with 30 s rest) that beeps and vibrates at each change; *+1 min*; a full-screen **Big timer** to show the kids. It starts by itself when each activity begins (switch this off in *Settings*)
    - **coach calls** you can tap to flash full-screen in colour, or let the app pick one at random
    - coaching points, how it works, the diagram, setup, easier/harder
    - what's up next, plus coaching reminders for the session's age group (U5–U8 or U9–U12)
