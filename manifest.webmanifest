@@ -1,0 +1,14 @@
+{
+  "name": "Royal Club Coach",
+  "short_name": "Royal Club",
+  "description": "Plan and run youth football training sessions.",
+  "start_url": "./index.html#today",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eef1f8",
+  "theme_color": "#1c3fa8",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
