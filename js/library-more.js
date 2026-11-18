@@ -9,6 +9,34 @@ const pair = (x1, y1, x2, y2, c = 'blue') => [
 ];
 
 export const MORE = [
+  // ---------------- every age ----------------
+  {
+    id: 'team-prayer',
+    category: 'arrival',
+    ages: [5, 12],
+    duration: 1,
+    skills: ['teamwork', 'listening'],
+    title: { en: 'Team prayer', ro: 'Rugăciunea echipei' },
+    summary: {
+      en: 'A 30-second prayer together in a circle before training starts.',
+      ro: 'O rugăciune de 30 de secunde, împreună, în cerc, înainte de antrenament.',
+    },
+    players: { en: 'Whole group', ro: 'Toată grupa' },
+    space: { en: 'A circle around the coach', ro: 'Un cerc în jurul antrenorului' },
+    equipment: { en: 'None', ro: 'Nimic' },
+    setup: { en: 'Everyone in a circle, arms on each other’s shoulders, balls on the ground behind them.', ro: 'Toți în cerc, cu mâinile pe umerii colegilor și mingile pe jos, în spate.' },
+    howTo: {
+      en: 'When everyone is quiet, say each line and the children repeat it: “Lord, thank you for today and for the friends we play with. Help us to train with joy, to respect each other and to be good teammates. Keep us safe from injury and bless our families. Amen.” Or say the Lord’s Prayer together. Finish with “Royal Club!” and go straight into the first game.',
+      ro: 'Când s-a făcut liniște, spuneți fiecare rând, iar copiii îl repetă: „Doamne, Îți mulțumim pentru ziua de azi și pentru prietenii cu care jucăm. Ajută-ne să ne antrenăm cu bucurie, să ne respectăm unii pe alții și să fim buni coechipieri. Ferește-ne de accidentări și binecuvântează-ne familiile. Amin.” Sau spuneți împreună „Tatăl nostru”. Terminați cu „Royal Club!” și treceți direct la primul joc.',
+    },
+    coaching: [
+      { en: 'Wait for quiet before you start', ro: 'Așteptați să se facă liniște înainte să începeți' },
+      { en: 'Calm and short: about 30 seconds', ro: 'Calm și scurt: cam 30 de secunde' },
+      { en: 'Children who don’t pray stand with the group in silence', ro: 'Copiii care nu se roagă stau în cerc, în liniște, alături de ceilalți' },
+      { en: 'Let a different child lead it each week', ro: 'În fiecare săptămână, un alt copil poate conduce rugăciunea' },
+    ],
+  },
+
   // ---------------- youngest ----------------
   {
     id: 'follow-leader',
