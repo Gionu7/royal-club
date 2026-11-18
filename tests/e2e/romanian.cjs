@@ -62,7 +62,9 @@ const re = new RegExp(`(^|[^\\p{L}])(${EN.join('|')})(?=$|[^\\p{L}])`, 'giu');
   await page.click('.action-bar [data-act="start-run"]');
   await scan('prezență');
   await page.click('[data-act="att-all"]');
-  for (let i = 0; i < 9; i++) {
+  // Visit every step of the session, ending on the last one.
+  const steps = await page.$$eval('.seg-btn', (x) => x.length);
+  for (let i = 0; i < steps; i++) {
     await page.click('.run-nav [data-act="run-next"]');
     await page.click('summary').catch(() => {});
     await scan('pas ' + i);

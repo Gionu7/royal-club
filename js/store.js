@@ -54,11 +54,25 @@ export function planFromTemplate(state, tpl, lang = 'en') {
   return plan;
 }
 
-/** Adds the club's 60-minute U7 plan the first time the app opens. */
-export function seed(state, lang = 'en') {
-  if (state.seeded) return state;
-  planFromTemplate(state, SAMPLE_PLAN, lang);
-  state.seeded = true;
+/**
+ * Phones used to get the U7 template (SAMPLE_PLAN) as a starter session on first
+ * launch; the club's own sessions (CLUB_PLANS) replace it. Remove that copy once,
+ * but only if it is untouched: the template's name, activities and minutes, no
+ * notes, and no session run from it. A coach's own changes are never removed.
+ */
+export function removeStarterPlan(state) {
+  if (state.starterRemoved) return state;
+  state.starterRemoved = true;
+  const used = new Set((state.runs || []).map((r) => r.planId));
+  const names = Object.values(SAMPLE_PLAN.name);
+  const untouched = (p) =>
+    (!p.templateId || p.templateId === SAMPLE_PLAN.id) &&
+    names.includes(p.name) &&
+    !p.notes &&
+    !used.has(p.id) &&
+    p.blocks.length === SAMPLE_PLAN.blocks.length &&
+    p.blocks.every((b, i) => b.activityId === SAMPLE_PLAN.blocks[i][0] && Number(b.duration) === SAMPLE_PLAN.blocks[i][1] && !b.note);
+  state.plans = state.plans.filter((p) => !untouched(p));
   return state;
 }
 
@@ -132,7 +146,8 @@ export function load(lang) {
     raw = null;
   }
   const state = normalize(raw, lang);
-  return addClubPlans(seed(state, state.settings.lang || lang));
+  state.seeded = true;
+  return addClubPlans(removeStarterPlan(state));
 }
 
 const SETTINGS_KEY = 'royalclub.settings.v1';

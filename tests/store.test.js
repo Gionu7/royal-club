@@ -3,14 +3,18 @@ import assert from 'node:assert/strict';
 import * as S from '../js/store.js';
 import { LIBRARY, SAMPLE_PLAN, CATEGORIES } from '../js/library.js';
 
-test('first launch seeds the 60-minute U7 plan from the club PDF', () => {
-  const s = S.seed(S.emptyState('ro'), 'ro');
+/** A state with the club's 60-minute U7 plan made from its template. */
+function withU7(lang) {
+  const s = S.emptyState(lang);
+  S.planFromTemplate(s, SAMPLE_PLAN, lang);
+  return s;
+}
+
+test('the U7 template is the club PDF’s 60-minute plan', () => {
+  const s = withU7('ro');
   assert.equal(s.plans.length, 1);
   assert.equal(S.planMinutes(s.plans[0]), 60);
   assert.equal(s.plans[0].name, SAMPLE_PLAN.name.ro);
-  // seeding twice does nothing
-  S.seed(s, 'ro');
-  assert.equal(s.plans.length, 1);
 });
 
 test('every library activity is complete in both languages', () => {
@@ -29,7 +33,7 @@ test('every library activity is complete in both languages', () => {
 });
 
 test('timeline gives paper-plan start times', () => {
-  const s = S.seed(S.emptyState('en'), 'en');
+  const s = withU7('en');
   const tl = S.timeline(s, s.plans[0]);
   assert.equal(S.clock(tl[0].start), '0:00');
   const game = tl.find((x) => x.block.activityId === '3v3-two-pitches');
@@ -67,7 +71,7 @@ test('bulk add players skips blanks and duplicates', () => {
 });
 
 test('a run tracks attendance, notes and finishes', () => {
-  const s = S.seed(S.emptyState('en'), 'en');
+  const s = withU7('en');
   const [a, b] = S.bulkAddPlayers(s, 'Ana\nBogdan');
   const run = S.startRun(s, s.plans[0]);
   assert.equal(S.activeRun(s), run);
@@ -85,7 +89,7 @@ test('a run tracks attendance, notes and finishes', () => {
 });
 
 test('backups round-trip and reject other JSON', () => {
-  const s = S.seed(S.emptyState('en'), 'en');
+  const s = withU7('en');
   S.addPlayer(s, { name: 'Ioana' });
   const back = S.parseBackup(S.exportData(s), 'en');
   assert.equal(back.players[0].name, 'Ioana');
@@ -161,9 +165,9 @@ test('every phone gets the club sessions once, without duplicates', () => {
   const ids = new Set(LIBRARY.map((a) => a.id));
   for (const p of CLUB_PLANS) for (const b of p.blocks) assert.ok(ids.has(b.activityId), `${p.name} uses ${b.activityId}`);
   const club = CLUB_PLANS[0];
-  // A new phone: the starter session plus the club's sessions.
-  const fresh = S.addClubPlans(S.seed(S.normalize(null, 'ro'), 'ro'));
-  assert.equal(fresh.plans.length, 1 + CLUB_PLANS.length);
+  // A new phone: only the club's sessions.
+  const fresh = S.addClubPlans(S.removeStarterPlan(S.normalize(null, 'ro')));
+  assert.equal(fresh.plans.length, CLUB_PLANS.length);
   assert.ok(fresh.plans.some((p) => p.id === club.id && p.name === 'Primul antrenament'));
   // A phone that already has it (maybe edited): no second copy, its own version kept.
   const mine = S.normalize({ plans: [{ ...structuredClone(club), notes: 'mine' }], seeded: true }, 'ro');
@@ -178,4 +182,25 @@ test('every phone gets the club sessions once, without duplicates', () => {
   const other = S.addClubPlans(S.normalize(null, 'ro'));
   other.plans[0].blocks.pop();
   assert.equal(CLUB_PLANS[0].blocks.length, 8);
+});
+
+test('the old starter session is removed once, only if nobody changed or ran it', () => {
+  const phone = (change) => {
+    const s = withU7('ro');
+    delete s.plans[0].templateId; // phones from the first release did not record it
+    change?.(s, s.plans[0]);
+    return S.removeStarterPlan(s);
+  };
+  assert.equal(phone().plans.length, 0, 'untouched copy goes');
+  assert.equal(phone((s, p) => (p.blocks[0].duration = 6)).plans.length, 1, 'changed minutes stay');
+  assert.equal(phone((s, p) => (p.blocks[2].note = 'wider gates')).plans.length, 1, 'block note stays');
+  assert.equal(phone((s, p) => (p.name = 'Miercuri')).plans.length, 1, 'renamed stays');
+  assert.equal(phone((s, p) => (p.notes = 'x')).plans.length, 1, 'plan notes stay');
+  assert.equal(phone((s, p) => S.startRun(s, p)).plans.length, 1, 'a session was run from it');
+  assert.equal(phone((s, p) => S.removeBlock(p, p.blocks[0].id)).plans.length, 1, 'removed block stays');
+  // Only once: a U7 plan made from the template later is kept.
+  const s = phone();
+  S.planFromTemplate(s, SAMPLE_PLAN, 'ro');
+  S.removeStarterPlan(s);
+  assert.equal(s.plans.length, 1);
 });

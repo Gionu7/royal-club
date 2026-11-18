@@ -1794,7 +1794,7 @@ const actions = {
   'reset-all'() {
     const fresh = S.emptyState(getLang());
     Object.keys(state).forEach((k) => delete state[k]);
-    Object.assign(state, fresh, { seeded: true, clubPlans: S.clubPlanIds() });
+    Object.assign(state, fresh, { seeded: true, starterRemoved: true, clubPlans: S.clubPlanIds() });
     persist(true);
     ui.confirm = null;
     go('today', null, { replace: true });
@@ -2046,7 +2046,10 @@ const binds = {
   'block-note'(el) {
     const plan = S.getPlan(state, route.id);
     const b = plan?.blocks.find((x) => x.id === el.dataset.id);
-    if (b) b.note = el.value;
+    if (b) {
+      b.note = el.value;
+      S.touch(plan);
+    }
   },
   draft(el) {
     if (ui.draft) ui.draft[el.dataset.f] = el.value;
