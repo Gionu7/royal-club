@@ -277,6 +277,8 @@ export const STRINGS = {
     connecting: 'Connecting to the club…',
     // ages, templates, print
     ageAll: 'All ages',
+    hiddenByAge: '{n} more for other ages than {age}.',
+    showAllAges: 'Show all ages',
     ageLabel: 'Age group',
     ages: 'Ages',
     fAgeFrom: 'From age group',
@@ -566,6 +568,8 @@ export const STRINGS = {
     cloudBackupHint: 'Baza de date a clubului păstrează totul. O copie de siguranță e totuși utilă înainte de schimbări mari. Restaurarea adaugă în club elementele din fișier, fără să șteargă nimic.',
     connecting: 'Se conectează la club…',
     ageAll: 'Toate vârstele',
+    hiddenByAge: 'Încă {n} pentru alte vârste decât {age}.',
+    showAllAges: 'Arată toate vârstele',
     ageLabel: 'Grupa de vârstă',
     ages: 'Vârste',
     fAgeFrom: 'De la grupa',
