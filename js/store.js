@@ -1,6 +1,6 @@
 // App data: plans, custom activities, players, notes and session runs.
 // Saved to localStorage on this device. Pure helpers are exported for tests.
-import { LIBRARY, SAMPLE_PLAN } from './library.js';
+import { LIBRARY, SAMPLE_PLAN, ageOf } from './library.js';
 import { newTimer } from './timer.js';
 
 const KEY = 'royalclub.v1';
@@ -29,22 +29,29 @@ export function emptyState(lang = 'en') {
   };
 }
 
+/** Creates a plan from a template (see TEMPLATES in library.js). */
+export function planFromTemplate(state, tpl, lang = 'en') {
+  const now = Date.now();
+  const plan = {
+    id: uid(),
+    name: tpl.name[lang] || tpl.name.en,
+    team: tpl.team,
+    date: today(),
+    target: tpl.target,
+    focus: tpl.focus[lang] || tpl.focus.en,
+    notes: '',
+    blocks: tpl.blocks.map(([activityId, duration]) => ({ id: uid(), activityId, duration, note: '' })),
+    createdAt: now,
+    updatedAt: now,
+  };
+  state.plans.unshift(plan);
+  return plan;
+}
+
 /** Adds the club's 60-minute U7 plan the first time the app opens. */
 export function seed(state, lang = 'en') {
   if (state.seeded) return state;
-  const now = Date.now();
-  state.plans.push({
-    id: uid(),
-    name: SAMPLE_PLAN.name[lang] || SAMPLE_PLAN.name.en,
-    team: SAMPLE_PLAN.team,
-    date: today(),
-    target: SAMPLE_PLAN.target,
-    focus: SAMPLE_PLAN.focus[lang] || SAMPLE_PLAN.focus.en,
-    notes: '',
-    blocks: SAMPLE_PLAN.blocks.map(([activityId, duration]) => ({ id: uid(), activityId, duration, note: '' })),
-    createdAt: now,
-    updatedAt: now,
-  });
+  planFromTemplate(state, SAMPLE_PLAN, lang);
   state.seeded = true;
   return state;
 }
@@ -108,12 +115,15 @@ export function deleteActivity(state, id) {
   state.activities = state.activities.filter((a) => a.id !== id);
 }
 
+export { ageOf };
+
 /** Free-text search across title, summary, skills and how-to in both languages. */
-export function searchActivities(list, { q = '', category = 'all' } = {}) {
+export function searchActivities(list, { q = '', category = 'all', age = null } = {}) {
   const needle = q.trim().toLowerCase();
   const flat = (v) => (v == null ? '' : typeof v === 'string' ? v : Object.values(v).join(' '));
   return list.filter((a) => {
     if (category !== 'all' && a.category !== category) return false;
+    if (age && a.ages && (age < a.ages[0] || age > a.ages[1])) return false;
     if (!needle) return true;
     const hay = [flat(a.title), flat(a.summary), (a.skills || []).join(' '), flat(a.howTo)].join(' ').toLowerCase();
     return hay.includes(needle);

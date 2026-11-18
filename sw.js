@@ -1,5 +1,5 @@
 // Offline cache so the app opens at the pitch without signal.
-const CACHE = 'royal-club-v1';
+const CACHE = 'royal-club-v2';
 const FILES = [
   './',
   './index.html',
@@ -7,6 +7,8 @@ const FILES = [
   './js/app.js',
   './js/i18n.js',
   './js/library.js',
+  './js/library-more.js',
+  './js/diagram-helpers.js',
   './js/diagram.js',
   './js/store.js',
   './js/timer.js',

@@ -93,3 +93,43 @@ test('backups round-trip and reject other JSON', () => {
   assert.throws(() => S.parseBackup('{"hello":1}', 'en'));
   assert.throws(() => S.parseBackup('not json', 'en'));
 });
+
+import { TEMPLATES, ageOf, agesLabel, tipsFor } from '../js/library.js';
+
+test('every template uses real activities and fits its planned length', () => {
+  const ids = new Set(LIBRARY.map((a) => a.id));
+  for (const tpl of TEMPLATES) {
+    for (const [id] of tpl.blocks) assert.ok(ids.has(id), `${tpl.id} uses ${id}`);
+    assert.equal(tpl.blocks.reduce((s, [, m]) => s + m, 0), tpl.target, tpl.id);
+    assert.ok(tpl.name.en && tpl.name.ro && tpl.focus.en && tpl.focus.ro, tpl.id);
+  }
+  const s = S.emptyState('en');
+  const p = S.planFromTemplate(s, TEMPLATES[2], 'ro');
+  assert.equal(p.name, TEMPLATES[2].name.ro);
+  assert.equal(S.planMinutes(p), 75);
+});
+
+test('every activity has an age range, and the age filter uses it', () => {
+  for (const a of LIBRARY) {
+    assert.ok(Array.isArray(a.ages) && a.ages[0] <= a.ages[1], a.id);
+  }
+  const list = S.allActivities(S.emptyState('en'));
+  const u12 = S.searchActivities(list, { age: 12 });
+  assert.ok(u12.some((a) => a.id === 'rondo-4v1'));
+  assert.ok(!u12.some((a) => a.id === 'animal-moves'));
+  const u6 = S.searchActivities(list, { age: 6 });
+  assert.ok(u6.some((a) => a.id === 'follow-leader'));
+  assert.ok(!u6.some((a) => a.id === 'possession-4v4-2'));
+  // custom activities without ages always show
+  list.unshift({ id: 'mine', category: 'game', title: 'Mine' });
+  assert.ok(S.searchActivities(list, { age: 11 }).some((a) => a.id === 'mine'));
+});
+
+test('age helpers', () => {
+  assert.equal(ageOf('U10'), 10);
+  assert.equal(ageOf('u 7 girls'), 7);
+  assert.equal(ageOf('Juniors'), null);
+  assert.equal(agesLabel([9, 12]), 'U9–U12');
+  assert.equal(agesLabel([7, 7]), 'U7');
+  assert.notEqual(tipsFor(7), tipsFor(11));
+});

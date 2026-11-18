@@ -1261,6 +1261,10 @@ input.bl-note {
   fill: var(--bib-orange);
   stroke: var(--bib-orange-line);
 }
+.dg-p.gold {
+  fill: #ffe9a8;
+  stroke: #b88700;
+}
 .dg-arrow line,
 .dg-arrow path {
   stroke: rgba(255, 255, 255, 0.85);
@@ -1930,5 +1934,328 @@ body.in-run .toast {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* ---------- ages and templates ---------- */
+.ac-age {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--royal);
+  background: var(--royal-soft);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.age-select {
+  width: auto !important;
+  flex: 0 0 auto;
+  border-radius: 999px !important;
+  font-weight: 600;
+}
+.tpl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.tpl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: var(--r);
+  border: 1.5px dashed var(--line);
+  background: var(--surface-2);
+}
+.tpl:hover {
+  border-color: var(--royal);
+  border-style: solid;
+}
+.tpl b {
+  font: 700 1.25rem/1.1 var(--f-display);
+}
+.tpl small {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+/* ---------- printable plan ---------- */
+.print-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.notice {
+  background: var(--royal-soft);
+  color: var(--ink);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  max-width: 68ch;
+}
+.doc {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  padding: clamp(16px, 4vw, 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 860px;
+  width: 100%;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.doc-head {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding-bottom: 14px;
+  border-bottom: 3px solid var(--royal);
+}
+.doc-head .crest {
+  width: 46px;
+  height: 50px;
+  flex: none;
+}
+.doc-head .crest-shield {
+  fill: var(--royal);
+  opacity: 1;
+}
+.doc-head .crest-ball {
+  fill: #fff;
+}
+.doc-club {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--royal);
+}
+.doc-head h1 {
+  font-size: clamp(1.6rem, 5vw, 2.3rem);
+}
+.doc-head p {
+  color: var(--muted);
+}
+.doc-focus {
+  max-width: 75ch;
+}
+.doc-sec h2,
+.doc-act-head h2 {
+  font-size: 1.3rem;
+  margin-bottom: 6px;
+}
+.doc-sec ul {
+  margin: 0;
+  padding-left: 20px;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.doc-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border-bottom: 2px solid var(--ink);
+  padding: 6px 8px;
+}
+.doc-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 7px 8px;
+  vertical-align: top;
+}
+.doc-table td.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.doc-table .dot {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+.doc-two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+.checklist {
+  list-style: none;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.checklist li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.checklist li::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  flex: none;
+  transform: translateY(1px);
+}
+.checklist.cols {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+.checklist small {
+  color: var(--muted);
+}
+.doc-act {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.doc-act-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.doc-act-head h2 {
+  margin: 0;
+}
+.doc-time {
+  font: 700 1.05rem/1 var(--f-display);
+  font-variant-numeric: tabular-nums;
+  background: var(--ink);
+  color: var(--surface);
+  border-radius: 4px;
+  padding: 3px 7px;
+}
+.doc-meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.doc-note {
+  border-left: 4px solid var(--gold);
+  padding-left: 10px;
+  font-weight: 600;
+}
+.doc-act-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 640px) {
+  .doc-act-body:has(.doc-dg) {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+.doc-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.doc-text ul {
+  margin: 0;
+  padding-left: 20px;
+}
+.doc-dg {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.doc-dg .diagram {
+  width: 100%;
+  max-height: 260px;
+  background: var(--pitch);
+  border-radius: 4px;
+}
+.doc-dg .legend {
+  font-size: 0.75rem;
+  gap: 4px 10px;
+}
+.lines {
+  height: 160px;
+  background: repeating-linear-gradient(to bottom, transparent 0 31px, var(--line) 31px 32px);
+}
+
+@media print {
+  :root:not([data-print]) {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f4f5f8;
+    --ink: #0d1838;
+    --muted: #4a5470;
+    --line: #c9cfdd;
+    --royal: #1c3fa8;
+    --royal-soft: #e3e9fb;
+    --gold: #f2b705;
+    --pitch: #2d8a4c;
+    --pitch-line: rgba(255, 255, 255, 0.9);
+    --c-arrival: #0f8a8a;
+    --c-warmup: #d88a00;
+    --c-technical: #1c3fa8;
+    --c-game: #2d8a4c;
+    --c-cooldown: #7a3fb0;
+    --c-break: #6b7894;
+    color-scheme: light;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body {
+    background: #fff;
+    font-size: 11pt;
+  }
+  body::before,
+  .topbar,
+  .tabbar,
+  .no-print,
+  .back-link,
+  .toast,
+  .sheet-wrap {
+    display: none !important;
+  }
+  .main {
+    padding: 0 !important;
+    max-width: none;
+  }
+  .doc {
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    max-width: none;
+    font-size: 10pt;
+  }
+  .doc-act-body:has(.doc-dg) {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+  .doc-act,
+  .doc-keep,
+  .doc-table tr {
+    break-inside: avoid;
+  }
+  .doc-sec h2,
+  .doc-act-head {
+    break-after: avoid;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

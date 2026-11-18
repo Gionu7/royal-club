@@ -1,5 +1,5 @@
 import { t, tx, txList, setLang, getLang, detectLang, LANGS } from './i18n.js';
-import { CATEGORIES, GENERAL_TIPS } from './library.js';
+import { CATEGORIES, AGE_GROUPS, TEMPLATES, ageOf, agesLabel, tipsFor } from './library.js';
 import { renderDiagram, legendSwatch } from './diagram.js';
 import * as S from './store.js';
 import * as T from './timer.js';
@@ -12,6 +12,8 @@ setLang(state.settings.lang);
 const ui = {
   category: 'all',
   q: '',
+  age: null,
+  pickAge: null,
   pickCat: 'all',
   pickQ: '',
   sheet: null, // {type: 'picker'|'addTo'|'notes', ...}
@@ -28,7 +30,7 @@ const ui = {
   backupText: '',
 };
 
-const SECTIONS = { today: 'today', plans: 'sessions', plan: 'sessions', summary: 'sessions', library: 'library', activity: 'library', 'activity-edit': 'library', players: 'players', player: 'players', options: 'options', run: 'run' };
+const SECTIONS = { today: 'today', plans: 'sessions', plan: 'sessions', summary: 'sessions', print: 'sessions', library: 'library', activity: 'library', 'activity-edit': 'library', players: 'players', player: 'players', options: 'options', run: 'run' };
 const HASH_TO_ROUTE = { today: 'today', sessions: 'plans', library: 'library', players: 'players', options: 'options' };
 
 let route = initialRoute();
@@ -152,6 +154,7 @@ const ICONS = {
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   note: '<path d="M5 4h10l4 4v12H5z"/><path d="M14 4v5h5M8.5 13h7M8.5 16.5h5"/>',
   whistle: '<circle cx="9" cy="14" r="5"/><path d="M12.5 10.5 20 6v4l-5 2.5"/>',
+  print: '<path d="M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/><rect x="7" y="14" width="10" height="6" rx="1"/>',
   dice: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/>',
 };
 
@@ -160,6 +163,10 @@ function icon(name, cls = '') {
 }
 
 const CREST = `<svg class="crest" viewBox="0 0 40 44" aria-hidden="true"><path d="M20 2 36 7v15c0 10-7 17-16 20C11 39 4 32 4 22V7z" class="crest-shield"/><path d="M11 17l3 4 3-6 3 6 3-6 3 6 3-4-1.5 8h-15z" class="crest-crown"/><circle cx="20" cy="32" r="3.2" class="crest-ball"/></svg>`;
+
+function showAges(a) {
+  return a.ages && a.category !== 'break' ? agesLabel(a.ages) : '';
+}
 
 function catChip(cat) {
   return `<span class="cat cat-${cat}">${esc(t('cat_' + cat))}</span>`;
@@ -325,6 +332,11 @@ function viewPlans() {
           : `<div class="card empty"><p>${esc(t('noPlans'))}</p></div>`
       }
     </div>
+    <section>
+      <h2 class="section-title">${esc(t('templates'))}</h2>
+      <p class="muted sm">${esc(t('templatesHint'))}</p>
+      <div class="tpl-grid">${TEMPLATES.map((tp) => `<button class="tpl" data-act="from-template" data-id="${tp.id}"><span class="pc-team">${esc(tx(tp.name).split(' · ')[0])} · ${tp.target} ${esc(t('min'))}</span><b>${esc(tx(tp.name).split(' · ').slice(2).join(' · ') || tx(tp.name))}</b><small>${esc(tx(tp.focus))}</small></button>`).join('')}</div>
+    </section>
     <h2 class="section-title">${esc(t('pastSessions'))}</h2>
     ${runs.length ? runList(runs) : `<p class="muted">${esc(t('noRuns'))}</p>`}
   `,
@@ -402,6 +414,7 @@ function viewPlan() {
 
     <div class="action-bar">
       ${live ? `<button class="btn primary lg" data-act="resume">${icon('play')}${esc(t('resumeSession'))}</button>` : `<button class="btn primary lg" data-act="start-run" data-id="${plan.id}" ${plan.blocks.length ? '' : 'disabled'}>${icon('play')}${esc(t('startSession'))}</button>`}
+      <button class="btn" data-act="nav" data-to="print" data-id="${plan.id}" ${plan.blocks.length ? '' : 'disabled'}>${icon('print')}${esc(t('printPlan'))}</button>
       <button class="btn" data-act="dup-plan" data-id="${plan.id}">${icon('copy')}${esc(t('duplicate'))}</button>
       ${confirmButton('plan-' + plan.id, t('delete'), 'delete-plan', `data-id="${plan.id}"`)}
     </div>
@@ -420,13 +433,20 @@ function libraryCards(list) {
       return `<button class="card act-card" data-act="nav" data-to="activity" data-id="${esc(a.id)}">
         <span class="ac-thumb ${d ? '' : 'none'}">${d ? d.svg : icon(a.category === 'break' ? 'whistle' : 'note')}</span>
         <span class="ac-body">
-          <span class="ac-meta">${catChip(a.category)}<span class="ac-min">${a.duration} ${esc(t('min'))}</span>${S.isBuiltIn(a.id) ? '' : `<span class="badge">${esc(t('custom'))}</span>`}</span>
+          <span class="ac-meta">${catChip(a.category)}<span class="ac-min">${a.duration} ${esc(t('min'))}</span>${showAges(a) ? `<span class="ac-age">${showAges(a)}</span>` : ''}${S.isBuiltIn(a.id) ? '' : `<span class="badge">${esc(t('custom'))}</span>`}</span>
           <b class="ac-title">${esc(tx(a.title))}</b>
           <span class="ac-sum">${esc(tx(a.summary))}</span>
         </span>
       </button>`;
     })
     .join('');
+}
+
+function ageSelect(id, bind, current) {
+  return `<select class="age-select" id="${id}" data-bind="${bind}" aria-label="${esc(t('ageLabel'))}">
+    <option value="">${esc(t('ageAll'))}</option>
+    ${AGE_GROUPS.map((a) => `<option value="${a}" ${current === a ? 'selected' : ''}>U${a}</option>`).join('')}
+  </select>`;
 }
 
 function catFilter(current, act) {
@@ -436,11 +456,12 @@ function catFilter(current, act) {
 }
 
 function viewLibrary() {
-  const list = S.searchActivities(S.allActivities(state), { q: ui.q, category: ui.category });
+  const list = S.searchActivities(S.allActivities(state), { q: ui.q, category: ui.category, age: ui.age });
   return shell(
     `
     <div class="lib-tools">
       <input class="search" id="lib-search" type="search" data-bind="lib-q" value="${esc(ui.q)}" placeholder="${esc(t('search'))}" aria-label="${esc(t('search'))}">
+      ${ageSelect('lib-age', 'lib-age', ui.age)}
       <button class="btn" data-act="new-activity">${icon('plus')}${esc(t('newActivity'))}</button>
     </div>
     ${catFilter(ui.category, 'lib-cat')}
@@ -470,6 +491,7 @@ function roundsText(r) {
 function activityBody(a, { onPitch = false } = {}) {
   const coaching = txList(a.coaching);
   const facts = [
+    [t('ages'), showAges(a)],
     [t('players'), tx(a.players)],
     [t('space'), tx(a.space)],
     [t('equipment'), tx(a.equipment)],
@@ -511,7 +533,7 @@ function viewActivity() {
     `
     <article class="activity">
       <div class="act-head">
-        <div class="ac-meta">${catChip(a.category)}<span class="ac-min">${a.duration} ${esc(t('min'))}</span>${builtIn ? '' : `<span class="badge">${esc(t('custom'))}</span>`}</div>
+        <div class="ac-meta">${catChip(a.category)}<span class="ac-min">${a.duration} ${esc(t('min'))}</span>${showAges(a) ? `<span class="ac-age">${showAges(a)}</span>` : ''}${builtIn ? '' : `<span class="badge">${esc(t('custom'))}</span>`}</div>
         <h1 class="page-title">${esc(tx(a.title))}</h1>
         ${tx(a.summary) ? `<p class="lead">${esc(tx(a.summary))}</p>` : ''}
         <div class="row gap wrap-row">
@@ -554,6 +576,8 @@ function startDraft(id) {
     rWork: a?.rounds?.work || '',
     rRest: a?.rounds?.rest ?? '',
     diagram: a?.diagram || null,
+    aMin: a?.ages?.[0] ?? '',
+    aMax: a?.ages?.[1] ?? '',
     callColors: a?.calls ? Object.fromEntries(a.calls.filter((c) => c.color).map((c) => [tx(c), c.color])) : {},
     error: '',
   };
@@ -586,6 +610,9 @@ function viewActivityEdit() {
       <fieldset class="field wide"><legend>${esc(t('fRounds'))}</legend>
         <div class="field-row">${inp('rCount', t('fRoundCount'), 'number')}${inp('rWork', t('fRoundWork'), 'number')}${inp('rRest', t('fRoundRest'), 'number')}</div>
       </fieldset>
+      <div class="field-row">
+        ${['aMin', 'aMax'].map((f) => `<label class="field"><span>${esc(t(f === 'aMin' ? 'fAgeFrom' : 'fAgeTo'))}</span><select id="d-${f}" data-bind="draft" data-f="${f}"><option value="">–</option>${AGE_GROUPS.map((g) => `<option value="${g}" ${Number(d[f]) === g ? 'selected' : ''}>U${g}</option>`).join('')}</select></label>`).join('')}
+      </div>
       ${inp('skills', t('fSkills'))}
       <div class="row gap">
         <button class="btn primary" type="submit">${icon('check')}${esc(t('save'))}</button>
@@ -625,6 +652,7 @@ function saveDraft() {
     calls: lines(d.calls).map((c) => (d.callColors[c] ? { en: c, ro: c, color: d.callColors[c] } : c)),
     skills: String(d.skills || '').split(',').map((x) => x.trim()).filter(Boolean),
     rounds: count > 0 && work > 0 ? { count, work, rest: Number(d.rRest) || 0 } : null,
+    ages: d.aMin || d.aMax ? [Number(d.aMin || d.aMax), Number(d.aMax || d.aMin)].sort((x, y) => x - y) : null,
     diagram: d.diagram,
     custom: true,
   };
@@ -817,12 +845,12 @@ function viewRunAttendance(run) {
         <button class="btn self-end" type="submit">${icon('plus')}${esc(t('add'))}</button>
       </div>
     </form>
-    ${tipsBlock()}
+    ${tipsBlock(run.team)}
   `;
 }
 
-function tipsBlock() {
-  return `<details class="tips" ${ui.showTips ? 'open' : ''}><summary data-act="toggle-tips">${icon('whistle')}${esc(t('coaching'))} · U7</summary><ul class="hints">${GENERAL_TIPS.map((g) => `<li>${icon('check')}<span>${esc(tx(g))}</span></li>`).join('')}</ul></details>`;
+function tipsBlock(team) {
+  return `<details class="tips" ${ui.showTips ? 'open' : ''}><summary data-act="toggle-tips">${icon('whistle')}${esc(t('reminders'))}${team ? ` · ${esc(team)}` : ''}</summary><ul class="hints">${tipsFor(ageOf(team)).map((g) => `<li>${icon('check')}<span>${esc(tx(g))}</span></li>`).join('')}</ul></details>`;
 }
 
 function timerCard(run, step) {
@@ -895,7 +923,7 @@ function viewRunStep(run) {
         ? `<button class="card up-next" data-act="run-next"><span class="eyebrow">${esc(t('upNext'))}</span><span class="un-row">${catChip(na.category)}<b>${esc(tx(na.title))}</b><span class="muted">${nextStep.duration} ${esc(t('min'))}</span></span></button>`
         : `<p class="muted center">${esc(t('lastOne'))}</p>`
     }
-    ${tipsBlock()}
+    ${tipsBlock(run.team)}
   `;
 }
 
@@ -976,13 +1004,13 @@ function flashHtml() {
 // ---------------------------------------------------------------- sheets
 
 function pickerList() {
-  const list = S.searchActivities(S.allActivities(state), { q: ui.pickQ, category: ui.pickCat });
+  const list = S.searchActivities(S.allActivities(state), { q: ui.pickQ, category: ui.pickCat, age: ui.pickAge });
   if (!list.length) return `<p class="muted">${esc(t('noResults'))}</p>`;
   return `<ul class="list pick">${list
     .map(
       (a) => `<li class="pick-row">
       <span class="dot bg-${a.category}"></span>
-      <span class="lr-main"><b>${esc(tx(a.title))}</b><small>${esc(t('cat_' + a.category))} · ${a.duration} ${esc(t('min'))}</small></span>
+      <span class="lr-main"><b>${esc(tx(a.title))}</b><small>${esc(t('cat_' + a.category))} · ${a.duration} ${esc(t('min'))}${showAges(a) ? ` · ${showAges(a)}` : ''}</small></span>
       <button class="btn sm primary" data-act="pick" data-id="${esc(a.id)}">${icon('plus')}${esc(t('add'))}</button>
     </li>`,
     )
@@ -1029,7 +1057,7 @@ function sheetHtml() {
   let title = '';
   if (ui.sheet.type === 'picker') {
     title = t('pickActivity');
-    body = `<input class="search" id="pick-search" type="search" data-bind="pick-q" value="${esc(ui.pickQ)}" placeholder="${esc(t('search'))}" aria-label="${esc(t('search'))}">
+    body = `<div class="lib-tools"><input class="search" id="pick-search" type="search" data-bind="pick-q" value="${esc(ui.pickQ)}" placeholder="${esc(t('search'))}" aria-label="${esc(t('search'))}">${ageSelect('pick-age', 'pick-age', ui.pickAge)}</div>
       ${catFilter(ui.pickCat, 'pick-cat')}
       <div id="pick-list">${pickerList()}</div>`;
   } else if (ui.sheet.type === 'addTo') {
@@ -1067,6 +1095,7 @@ const VIEWS = {
   options: viewOptions,
   run: viewRun,
   summary: viewSummary,
+  print: viewPrint,
 };
 
 const app = document.getElementById('app');
@@ -1103,6 +1132,103 @@ function viewSummary() {
     <div class="action-bar">${confirmButton('run-' + run.id, t('delete'), 'delete-run', `data-id="${run.id}"`)}</div>
   `,
     { backTo: ['plans', t('navPlans')] },
+  );
+}
+
+// ---------------------------------------------------------------- printable plan
+
+// Browsers only print from a top-level page; embedded previews ignore window.print().
+const CAN_PRINT = (() => {
+  try {
+    return window.self === window.top;
+  } catch {
+    return false;
+  }
+})();
+
+function viewPrint() {
+  const plan = S.getPlan(state, route.id);
+  if (!plan) return viewPlans();
+  const tl = S.timeline(state, plan);
+  const total = S.planMinutes(plan);
+  const equipment = [...new Set(tl.filter((x) => x.activity && x.activity.category !== 'break').map((x) => tx(x.activity.equipment)).filter((e) => e && !/^(none|nimic)$/i.test(e.trim())))];
+  const players = S.activePlayers(state);
+  const rows = tl
+    .map((x, i) => {
+      const a = x.activity || { title: '?', category: 'break' };
+      return `<tr><td class="num">${S.clock(x.start)}–${S.clock(x.end)}</td><td class="num">${x.block.duration}</td><td><span class="dot bg-${a.category}"></span><b>${i + 1}. ${esc(tx(a.title))}</b></td><td>${esc(txList(a.coaching)[0] || '')}</td></tr>`;
+    })
+    .join('');
+  const acts = tl
+    .filter((x) => x.activity && x.activity.category !== 'break')
+    .map((x) => {
+      const a = x.activity;
+      const i = tl.indexOf(x) + 1;
+      const d = renderDiagram(a.diagram, { title: tx(a.title) });
+      const coaching = txList(a.coaching);
+      const para = (label, v) => (tx(v) ? `<p><b>${esc(label)}:</b> ${nl(tx(v))}</p>` : '');
+      return `<section class="doc-act">
+        <header class="doc-act-head">
+          <span class="doc-time">${S.clock(x.start)}–${S.clock(x.end)}</span>
+          <h2>${i}. ${esc(tx(a.title))}</h2>
+          <span class="doc-meta">${esc(t('cat_' + a.category))} · ${x.block.duration} ${esc(t('min'))}${a.ages ? ` · ${agesLabel(a.ages)}` : ''}${a.rounds ? ` · ${esc(roundsText(a.rounds))}` : ''}</span>
+        </header>
+        ${x.block.note ? `<p class="doc-note">${esc(x.block.note)}</p>` : ''}
+        <div class="doc-act-body">
+          <div class="doc-text">
+            ${para(t('setup'), a.setup)}
+            ${para(t('howTo'), a.howTo)}
+            ${coaching.length ? `<p><b>${esc(t('coaching'))}:</b></p><ul>${coaching.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+            ${para(t('easier'), a.easier)}
+            ${para(t('harder'), a.harder)}
+            ${a.calls?.length ? `<p><b>${esc(t('calls'))}:</b> ${a.calls.map((c) => esc(tx(c))).join(' · ')}</p>` : ''}
+            ${para(t('equipment'), a.equipment)}
+          </div>
+          ${d ? `<figure class="doc-dg">${d.svg}<figcaption class="legend">${d.legend.map((l) => `<span>${legendSwatch(l.key)}${esc(l.label)}</span>`).join('')}</figcaption></figure>` : ''}
+        </div>
+      </section>`;
+    })
+    .join('');
+
+  return shell(
+    `
+    <div class="print-bar no-print">
+      ${CAN_PRINT ? `<button class="btn primary lg" data-act="print">${icon('print')}${esc(t('printBtn'))}</button><p class="muted sm">${esc(t('printHint'))}</p>` : `<p class="notice">${esc(t('printBlocked'))}</p>`}
+    </div>
+    <article class="doc">
+      <header class="doc-head">
+        ${CREST}
+        <div>
+          <div class="doc-club">${esc(t('appName'))} · ${esc(t('sessionPlan'))}</div>
+          <h1>${esc(planTitle(plan))}</h1>
+          <p>${esc(fmtDate(plan.date))} · ${esc(plan.team || '')} · ${total} ${esc(t('min'))} · ${tl.length} ${esc(t('activities'))}</p>
+        </div>
+      </header>
+      ${plan.focus ? `<p class="doc-focus"><b>${esc(t('theme'))}:</b> ${esc(plan.focus)}</p>` : ''}
+      ${plan.notes ? `<p class="doc-focus">${nl(plan.notes)}</p>` : ''}
+      <section class="doc-sec">
+        <h2>${esc(t('schedule'))}</h2>
+        <div class="table-wrap"><table class="doc-table">
+          <thead><tr><th>${esc(t('colTime'))}</th><th>${esc(t('colMin'))}</th><th>${esc(t('colActivity'))}</th><th>${esc(t('colKey'))}</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </section>
+      <section class="doc-sec doc-two">
+        <div><h2>${esc(t('equipmentList'))}</h2><ul class="checklist">${equipment.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>
+        ${players.length ? `<div><h2>${esc(t('register'))}</h2><ul class="checklist cols">${players.map((p) => `<li>${esc(p.name)}${p.number ? ` <small>#${esc(p.number)}</small>` : ''}</li>`).join('')}</ul></div>` : ''}
+      </section>
+      ${acts}
+      <section class="doc-sec doc-keep">
+        <h2>${esc(t('reminders'))}</h2>
+        <ul>${tipsFor(ageOf(plan.team)).map((g) => `<li>${esc(tx(g))}</li>`).join('')}</ul>
+      </section>
+      <section class="doc-sec doc-keep">
+        <h2>${esc(t('afterNotes'))}</h2>
+        <div class="lines"></div>
+      </section>
+    </article>
+  `,
+    { backTo: ['plan', planTitle(plan), plan.id] },
   );
 }
 
@@ -1262,6 +1388,7 @@ const actions = {
   },
   'open-picker'(el) {
     ui.sheet = { type: 'picker', planId: el.dataset.id };
+    ui.pickAge = ageOf(S.getPlan(state, el.dataset.id)?.team);
     render();
     document.getElementById('pick-search')?.focus({ preventScroll: true });
   },
@@ -1276,6 +1403,19 @@ const actions = {
     commit();
     render();
     toast(t('addedTo', { name: planTitle(plan) }) + ' · ' + tx(a.title));
+  },
+  'from-template'(el) {
+    const tpl = TEMPLATES.find((x) => x.id === el.dataset.id);
+    const p = S.planFromTemplate(state, tpl, getLang());
+    commit();
+    go('plan', p.id);
+  },
+  print() {
+    try {
+      window.print();
+    } catch {
+      /* the print dialog is optional */
+    }
   },
   'dup-plan'(el) {
     const p = S.getPlan(state, el.dataset.id);
@@ -1667,7 +1807,19 @@ const binds = {
   'lib-q'(el) {
     ui.q = el.value;
     const grid = document.getElementById('lib-grid');
-    if (grid) grid.innerHTML = libraryCards(S.searchActivities(S.allActivities(state), { q: ui.q, category: ui.category }));
+    if (grid) grid.innerHTML = libraryCards(S.searchActivities(S.allActivities(state), { q: ui.q, category: ui.category, age: ui.age }));
+    return false;
+  },
+  'lib-age'(el) {
+    ui.age = Number(el.value) || null;
+    const grid = document.getElementById('lib-grid');
+    if (grid) grid.innerHTML = libraryCards(S.searchActivities(S.allActivities(state), { q: ui.q, category: ui.category, age: ui.age }));
+    return false;
+  },
+  'pick-age'(el) {
+    ui.pickAge = Number(el.value) || null;
+    const list = document.getElementById('pick-list');
+    if (list) list.innerHTML = pickerList();
     return false;
   },
   'pick-q'(el) {

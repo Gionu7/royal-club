@@ -4,6 +4,7 @@ import { tx, getLang } from './i18n.js';
 const LEGEND = {
   blue: { en: 'Player', ro: 'Jucător' },
   orange: { en: 'Other team', ro: 'Cealaltă echipă' },
+  gold: { en: 'Joker', ro: 'Joker' },
   ball: { en: 'Ball', ro: 'Minge' },
   cone: { en: 'Cone', ro: 'Con' },
   gate: { en: 'Cone gate', ro: 'Poartă din conuri' },
@@ -95,7 +96,7 @@ export function renderDiagram(spec, { title = '' } = {}) {
         parts.push(arrowLine(it.x1, it.y1, it.x2, it.y2, it.dash));
         break;
       case 'p': {
-        const c = it.c === 'orange' ? 'orange' : 'blue';
+        const c = ['orange', 'gold'].includes(it.c) ? it.c : 'blue';
         used.add(c);
         if (it.dir != null && it.len !== 0) {
           const len = it.len ?? 2.4;
@@ -119,7 +120,7 @@ export function renderDiagram(spec, { title = '' } = {}) {
   const h = spec.h + PAD * 2;
   const svg = `<svg class="diagram" viewBox="${-PAD} ${-PAD} ${w} ${h}" role="img" aria-label="${esc(title)}" preserveAspectRatio="xMidYMid meet">${parts.join('')}</svg>`;
 
-  const order = ['blue', 'orange', 'ball', 'cone', 'gate', 'goal', 'coach', 'arrow', 'dash'];
+  const order = ['blue', 'orange', 'gold', 'ball', 'cone', 'gate', 'goal', 'coach', 'arrow', 'dash'];
   const legend = order
     .filter((k) => used.has(k))
     .map((k) => ({ key: k, label: tx((spec.legend && spec.legend[k]) || LEGEND[k]) }));
@@ -130,6 +131,7 @@ export function legendSwatch(key) {
   switch (key) {
     case 'blue':
     case 'orange':
+    case 'gold':
       return `<svg viewBox="0 0 2 2" class="lg-sw"><circle class="dg-p ${key}" cx="1" cy="1" r="0.75"/></svg>`;
     case 'ball':
       return `<svg viewBox="0 0 2 2" class="lg-sw"><circle class="dg-ball" cx="1" cy="1" r="0.45"/></svg>`;
