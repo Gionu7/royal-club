@@ -1,6 +1,6 @@
 // App data: plans, custom activities, players, notes and session runs.
 // Saved to localStorage on this device. Pure helpers are exported for tests.
-import { LIBRARY, SAMPLE_PLAN, ageOf } from './library.js';
+import { LIBRARY, SAMPLE_PLAN, TEMPLATES, ageOf, skillText } from './library.js';
 import { newTimer } from './timer.js';
 
 const KEY = 'royalclub.v1';
@@ -15,10 +15,10 @@ export function today() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export function emptyState(lang = 'en') {
+export function emptyState(lang = 'ro') {
   return {
     v: SCHEMA,
-    settings: { lang, sound: true, vibrate: true, autoStart: false },
+    settings: { lang, langChosen: false, sound: true, vibrate: true, autoStart: false },
     activities: [],
     plans: [],
     players: [],
@@ -34,6 +34,7 @@ export function planFromTemplate(state, tpl, lang = 'en') {
   const now = Date.now();
   const plan = {
     id: uid(),
+    templateId: tpl.id,
     name: tpl.name[lang] || tpl.name.en,
     team: tpl.team,
     date: today(),
@@ -61,7 +62,30 @@ export function normalize(raw, lang) {
   if (!raw || typeof raw !== 'object') return base;
   const s = { ...base, ...raw, settings: { ...base.settings, ...(raw.settings || {}) } };
   for (const k of ['activities', 'plans', 'players', 'notes', 'runs']) if (!Array.isArray(s[k])) s[k] = [];
+  // Romanian is the club's language: use it unless the coach picked another one.
+  if (!s.settings.langChosen) s.settings.lang = 'ro';
+  relocalize(s, s.settings.lang);
   return s;
+}
+
+/**
+ * Plans made from a template keep its name and theme in the language they were
+ * created in. Switch them to `lang`, unless the coach has changed the text.
+ */
+export function relocalize(state, lang) {
+  const swap = (text, field) => {
+    for (const tpl of TEMPLATES) {
+      const v = tpl[field];
+      if (text && Object.values(v).includes(text)) return v[lang] || v.en;
+    }
+    return text;
+  };
+  for (const p of state.plans || []) {
+    p.name = swap(p.name, 'name');
+    p.focus = swap(p.focus, 'focus');
+  }
+  for (const r of state.runs || []) r.planName = swap(r.planName, 'name');
+  return state;
 }
 
 export function load(lang) {
@@ -125,7 +149,7 @@ export function searchActivities(list, { q = '', category = 'all', age = null } 
     if (category !== 'all' && a.category !== category) return false;
     if (age && a.ages && (age < a.ages[0] || age > a.ages[1])) return false;
     if (!needle) return true;
-    const hay = [flat(a.title), flat(a.summary), (a.skills || []).join(' '), flat(a.howTo)].join(' ').toLowerCase();
+    const hay = [flat(a.title), flat(a.summary), (a.skills || []).map((k) => flat(skillText(k))).join(' '), flat(a.howTo)].join(' ').toLowerCase();
     return hay.includes(needle);
   });
 }

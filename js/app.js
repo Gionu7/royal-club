@@ -1,12 +1,12 @@
-import { t, tx, txList, setLang, getLang, detectLang, LANGS } from './i18n.js';
-import { CATEGORIES, AGE_GROUPS, TEMPLATES, ageOf, agesLabel, tipsFor } from './library.js';
+import { t, tx, txList, setLang, getLang, LANGS } from './i18n.js';
+import { CATEGORIES, AGE_GROUPS, TEMPLATES, ageOf, agesLabel, tipsFor, skillText } from './library.js';
 import { renderDiagram, legendSwatch } from './diagram.js';
 import * as S from './store.js';
 import * as T from './timer.js';
 
 // ---------------------------------------------------------------- state
 
-const state = S.load(detectLang());
+const state = S.load('ro');
 setLang(state.settings.lang);
 
 const ui = {
@@ -215,7 +215,7 @@ function shell(content, { title = '', backTo = null } = {}) {
     ${title ? `<h1 class="page-title">${esc(title)}</h1>` : ''}
     ${content}
   </main>
-  <nav class="tabbar" aria-label="Main">
+  <nav class="tabbar" aria-label="${esc(t('navMain'))}">
     <div class="tabbar-in">
     ${tabs
       .map(([r, s, label]) => `<button class="tab ${sec === s ? 'on' : ''}" data-act="nav" data-to="${r}" ${sec === s ? 'aria-current="page"' : ''}>${icon(r)}<span>${esc(label)}</span></button>`)
@@ -522,6 +522,7 @@ function activityBody(a, { onPitch = false } = {}) {
     ${section(t('coaching'), hints, 'hint-card')}
     ${variations ? section(`${t('easier')} / ${t('harder')}`, variations) : ''}
     ${a.calls?.length ? section(t('calls'), `<div class="calls static">${a.calls.map((c) => `<span class="call" ${c.color ? `style="--call:${c.color}"` : ''}>${esc(tx(c))}</span>`).join('')}</div>`) : ''}
+    ${a.skills?.length ? section(t('skills'), `<p class="muted">${esc(a.skills.map((k) => tx(skillText(k))).join(' · '))}</p>`) : ''}
 `;
 }
 
@@ -1519,7 +1520,9 @@ const actions = {
   // settings
   lang(el) {
     state.settings.lang = el.dataset.l;
+    state.settings.langChosen = true;
     setLang(el.dataset.l);
+    S.relocalize(state, el.dataset.l);
     commit();
     render();
   },

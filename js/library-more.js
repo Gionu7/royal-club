@@ -105,7 +105,7 @@ export const MORE = [
     ages: [8, 12],
     duration: 5,
     skills: ['ball control', 'touch'],
-    title: { en: 'Juggling challenge', ro: 'Provocarea jonglerii' },
+    title: { en: 'Juggling challenge', ro: 'Concurs de jonglerii' },
     summary: {
       en: 'Everyone juggles and tries to beat their own record. One bounce allowed between touches.',
       ro: 'Fiecare jonglează și încearcă să-și bată propriul record. E voie o săritură a mingii între atingeri.',
@@ -147,13 +147,13 @@ export const MORE = [
     setup: { en: 'Pairs facing each other, 10 m apart, each standing by a cone.', ro: 'Perechi față în față, la 10 m, fiecare lângă un con.' },
     howTo: {
       en: 'Round 1: two touches, inside of the foot. Round 2: one touch. Round 3: pass, then jog to the side of your cone and back. Round 4: receive on the back foot and open your body before passing. Jog lightly the whole time.',
-      ro: 'Runda 1: două atingeri, cu interiorul. Runda 2: o atingere. Runda 3: pasezi, apoi alergi ușor în lateralul conului și înapoi. Runda 4: primești pe piciorul din spate și îți deschizi corpul înainte de pasă. Mișcare ușoară tot timpul.',
+      ro: 'Runda 1: două atingeri, cu interiorul. Runda 2: o atingere. Runda 3: pasezi, apoi alergi ușor în lateralul conului și înapoi. Runda 4: preiei cu piciorul mai îndepărtat și îți deschizi corpul înainte de pasă. Mișcare ușoară tot timpul.',
     },
     coaching: [
       { en: 'Standing foot pointing at your partner', ro: 'Piciorul de sprijin îndreptat spre partener' },
       { en: 'Lock the ankle, strike the middle of the ball', ro: 'Glezna fixă, lovești mingea la mijloc' },
       { en: 'Be on your toes before the ball arrives', ro: 'Pe vârfuri înainte să vină mingea' },
-      { en: 'Receive across your body, away from pressure', ro: 'Primește pe piciorul din spate, departe de presiune' },
+      { en: 'Receive across your body, away from pressure', ro: 'Preia cu piciorul mai îndepărtat, departe de adversar' },
     ],
     easier: { en: 'Closer together (6 m) and two touches throughout.', ro: 'Mai aproape (6 m) și două atingeri tot timpul.' },
     harder: { en: 'Weaker foot only, or pass through a 1 m cone gate in the middle.', ro: 'Doar piciorul slab sau pasă printr-o poartă de 1 m la mijloc.' },
@@ -192,7 +192,7 @@ export const MORE = [
     },
     coaching: [
       { en: 'Tall posture, active arms', ro: 'Corpul drept, brațele active' },
-      { en: 'Land on the balls of your feet', ro: 'Aterizează pe pingele' },
+      { en: 'Land on the balls of your feet', ro: 'Aterizează pe partea din față a tălpii' },
       { en: 'Quality first, speed only at the end', ro: 'Întâi calitate, viteza doar la final' },
     ],
     easier: { en: 'Fewer movements, 10 m lanes.', ro: 'Mai puține mișcări, culoare de 10 m.' },
@@ -347,7 +347,7 @@ export const MORE = [
       { en: 'Talk: call for the ball', ro: 'Comunicați: cere mingea' },
     ],
     easier: { en: 'Smaller square, two touches.', ro: 'Pătrat mai mic, două atingeri.' },
-    harder: { en: 'One touch, or a give-and-go on each side.', ro: 'O atingere sau un „dă-și-du-te” pe fiecare latură.' },
+    harder: { en: 'One touch, or a give-and-go on each side.', ro: 'O atingere sau un un-doi pe fiecare latură.' },
     calls: [
       { en: 'Change direction!', ro: 'Schimbați direcția!' },
       { en: 'Second ball!', ro: 'A doua minge!' },
@@ -428,7 +428,7 @@ export const MORE = [
     title: { en: 'Give-and-go and shoot', ro: 'Un-doi și șut' },
     summary: {
       en: 'Pass into the wall player, run, take the return pass and shoot first time or after one touch.',
-      ro: 'Pasă la jucătorul-perete, demarcaj, primești pasa înapoi și șutezi direct sau după o atingere.',
+      ro: 'Pasă la jucătorul-perete, demarcaj, primești mingea înapoi și șutezi direct sau după o preluare.',
     },
     players: { en: '6–12 plus a keeper', ro: '6–12 plus un portar' },
     space: { en: '20 × 20 m in front of a goal', ro: '20 × 20 m în fața unei porți' },

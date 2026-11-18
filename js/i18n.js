@@ -1,6 +1,6 @@
 // UI strings in English and Romanian. Library content carries its own {en, ro} pairs.
 
-const STRINGS = {
+export const STRINGS = {
   en: {
     appName: 'Royal Club',
     tagline: 'Session planner',
@@ -9,6 +9,7 @@ const STRINGS = {
     navLibrary: 'Library',
     navPlayers: 'Players',
     navOptions: 'Settings',
+    navMain: 'Main menu',
 
     // categories
     cat_all: 'All',
@@ -251,6 +252,7 @@ const STRINGS = {
     navLibrary: 'Bibliotecă',
     navPlayers: 'Copii',
     navOptions: 'Setări',
+    navMain: 'Meniu principal',
 
     cat_all: 'Toate',
     cat_arrival: 'Sosire',
@@ -371,7 +373,7 @@ const STRINGS = {
     sessionClock: 'Antrenament',
     planned: 'Planificat {n} min',
     exit: 'Ieși',
-    countdown: 'Invers',
+    countdown: 'Timp rămas',
     stopwatch: 'Cronometru',
     roundsMode: 'Runde',
     start: 'Start',
@@ -440,7 +442,7 @@ const STRINGS = {
     backup: 'Copie de siguranță',
     backupHint: 'Totul e salvat pe acest dispozitiv. Fă din când în când o copie sau mută datele pe alt telefon.',
     exportFile: 'Descarcă copia',
-    copyBackup: 'Copiază textul copiei',
+    copyBackup: 'Copiază copia ca text',
     copied: 'Copiat',
     copyFailed: 'Nu s-a putut copia. Selectează textul de mai jos și copiază-l.',
     importFile: 'Restaurează din fișier',
@@ -460,7 +462,7 @@ const STRINGS = {
     reminders: 'Indicații generale',
     printPlan: 'Tipărește / PDF',
     printBtn: 'Tipărește sau salvează PDF',
-    printHint: 'În fereastra de tipărire alege „Salvează ca PDF” ca să păstrezi fișierul sau tipărește-l pentru clipboardul de pe margine.',
+    printHint: 'În fereastra de tipărire alege „Salvează ca PDF” ca să păstrezi fișierul sau tipărește-l ca să-l ai pe hârtie la antrenament.',
     printBlocked: 'Tipărirea nu e disponibilă în această previzualizare. Deschide aplicația de la adresa ei (de exemplu GitHub Pages) ca să tipărești sau să salvezi PDF.',
     schedule: 'Programul',
     colTime: 'Ora',
@@ -476,7 +478,7 @@ const STRINGS = {
   },
 };
 
-let lang = 'en';
+let lang = 'ro';
 
 export function setLang(l) {
   lang = STRINGS[l] ? l : 'en';

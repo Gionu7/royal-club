@@ -749,6 +749,55 @@ for (const a of BASE) a.ages = BASE_AGES[a.id];
 
 export const LIBRARY = [...BASE, ...MORE];
 
+/** Romanian names for the skill tags used in the library. */
+const SKILL_RO = {
+  dribbling: 'dribling',
+  'ball control': 'controlul mingii',
+  coordination: 'coordonare',
+  'warm-up': 'încălzire',
+  listening: 'ascultare',
+  shielding: 'protejarea mingii',
+  turning: 'întoarceri',
+  passing: 'pase',
+  'first touch': 'prima atingere',
+  shooting: 'șut',
+  game: 'joc',
+  'finding space': 'găsirea spațiului',
+  fun: 'distracție',
+  'cool-down': 'revenire',
+  balance: 'echilibru',
+  'stopping the ball': 'oprirea mingii',
+  teamwork: 'lucru în echipă',
+  'quick decisions': 'decizii rapide',
+  'striking the ball': 'lovirea mingii',
+  accuracy: 'precizie',
+  scanning: 'privire peste umăr',
+  'switching play': 'schimbarea jocului',
+  'changing direction': 'schimbarea direcției',
+  rest: 'odihnă',
+  touch: 'atingere',
+  speed: 'viteză',
+  'support angles': 'unghiuri de sprijin',
+  '1 v 1': '1 contra 1',
+  defending: 'apărare',
+  receiving: 'preluare',
+  movement: 'mișcare',
+  'decision making': 'luarea deciziilor',
+  timing: 'sincronizare',
+  'passing forward': 'pase înainte',
+  'running with the ball': 'conducerea mingii',
+  possession: 'posesie',
+  support: 'sprijin',
+  'build-up play': 'construcție',
+  goalkeeping: 'portar',
+  reflection: 'reflecție',
+};
+
+/** A skill tag as {en, ro}; tags typed by a coach pass through unchanged. */
+export function skillText(k) {
+  return SKILL_RO[k] ? { en: k, ro: SKILL_RO[k] } : k;
+}
+
 /** Age groups the app knows about, for filters and forms. */
 export const AGE_GROUPS = [5, 6, 7, 8, 9, 10, 11, 12];
 
