@@ -31,7 +31,7 @@ Then `npm start` and `npm run e2e:real` (real login screen, wrong password refus
    `insert into public.invites (email, role, name) values ('their@email', 'admin', 'Name');`
 3. **Authentication → Users → Add user → Create new user**, with the same email, a password and **Auto Confirm User** ticked. The signup trigger makes them admin from the invite.
 4. **Authentication → Sign In / Providers → Email:** turn **Confirm email** OFF (username accounts can't receive email). Keep **Allow new users to sign up** ON (the app creates accounts by signing them up; uninvited sign-ups get `pending` and see nothing).
-5. **Deploy:** merge into `main` with GitHub Pages on (Source: GitHub Actions). The URL and key come from `js/config.js`; the GitHub variables `SUPABASE_URL` / `SUPABASE_ANON_KEY` override them if set.
+5. **Deploy:** set `CLUB_MODE = true` in `js/config.js` (it is `false` while the club runs without login), then merge into `main` with GitHub Pages on (Source: GitHub Actions). The URL and key come from `js/config.js`; the GitHub variables `SUPABASE_URL` / `SUPABASE_ANON_KEY` override them if set.
 6. **Move existing data:** sign in as admin on the old phone → *Settings → Upload this device's data to the club*, or restore a backup file.
 
 Only the user can do steps 1–4, unless they give a Supabase **personal access token** for the Management API (`api.supabase.com`). That's a powerful secret: ask for it only through the session's credential form, never in chat, and only if they prefer that to doing it themselves.

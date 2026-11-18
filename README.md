@@ -6,8 +6,8 @@ It runs in the browser on a phone, tablet or laptop and works offline once opene
 
 It runs in one of two modes:
 
-- **On one device** (default): no login, everything stays in that browser.
-- **Club mode**: one shared database for the whole club, with accounts the admin hands out. See [Club accounts](#club-accounts).
+- **On one device** (the current setting): no login, every screen open, everything stays in that browser.
+- **Club mode**: one shared database for the whole club, with accounts the admin hands out. See [Club accounts](#club-accounts). It is switched off for now: set `CLUB_MODE = true` in `js/config.js` to turn the login on. The club's database is already connected.
 
 ## What it does
 
@@ -71,7 +71,7 @@ You do this once. It takes about 15 minutes.
    - turn **Confirm email** off, so username accounts work and new accounts can sign in straight away;
    - leave **Allow new users to sign up** on. The app creates accounts this way. Anyone who signs up on their own gets *Waiting for approval* and sees nothing until you give them a role.
 6. **Connect the app.** Already done for the club's project (`avyjgyztpxrvkpwrvbql`): its Project URL and **publishable / anon** key are in `js/config.js`. Both are safe to make public. Never put the `service_role` / secret key anywhere in the app. For a different project, change those two lines, or set the GitHub repository variables `SUPABASE_URL` and `SUPABASE_ANON_KEY` (**Settings → Secrets and variables → Actions → Variables**), which the Pages workflow writes into `js/config.js` when it deploys. To run on one device only, empty both values.
-7. **Deploy and sign in.** Merge into `main` (GitHub Pages must be on, see below), open the site and sign in with your email and password.
+7. **Deploy and sign in.** Set `CLUB_MODE = true` in `js/config.js`, merge into `main` (GitHub Pages must be on, see below), open the site and sign in with your email and password.
 8. **Bring your existing data.** On the phone where you already used the app, sign in as admin and open **Settings → Upload this device's data to the club**. A backup file works too: **Settings → Restore**.
 9. **Hand out accounts** in **Settings → Manage accounts**.
 
@@ -109,7 +109,7 @@ js/diagram-helpers.js helpers for writing diagrams
 js/diagram.js         draws the pitch diagrams from data
 js/timer.js           countdown / stopwatch / rounds maths, beeps and vibration
 js/store.js           plans, players, notes, sessions and backups (localStorage)
-js/config.js          club database settings (empty = one-device mode)
+js/config.js          club mode switch (CLUB_MODE) and club database settings
 js/cloud.js           club mode: login, accounts, syncing with Supabase
 js/sync.js            merge rules between the phone and the club database
 supabase/schema.sql   tables, roles and access rules for Supabase

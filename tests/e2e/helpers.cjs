@@ -17,7 +17,7 @@ async function singleDevice(ctx, { english = false } = {}) {
   await ctx.route('**/js/config.js', (r) =>
     r.fulfill({
       contentType: 'application/javascript',
-      body: "export const SUPABASE_URL = ''; export const SUPABASE_ANON_KEY = ''; export const USERNAME_DOMAIN = 'cont.royalclub.ro'; export const SUPABASE_LIB = '';",
+      body: "export const CLUB_MODE = false; export const SUPABASE_URL = ''; export const SUPABASE_ANON_KEY = ''; export const USERNAME_DOMAIN = 'cont.royalclub.ro'; export const SUPABASE_LIB = '';",
     }),
   );
   if (english) {

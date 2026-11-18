@@ -29,7 +29,7 @@ In Claude cloud sessions Playwright and Chromium are preinstalled globally (`NOD
 | `js/timer.js` | Countdown / stopwatch / rounds maths (timestamp based), beeps, vibration |
 | `js/store.js` | State shape and pure operations: plans, blocks, players, notes, runs, backups, settings |
 | `js/i18n.js` | Every interface string, `en` and `ro`; `t()`, `tx()` |
-| `js/config.js` | Supabase URL + publishable (anon) key. Empty = one-device mode |
+| `js/config.js` | `CLUB_MODE` switch, Supabase URL + publishable (anon) key. Club mode needs `CLUB_MODE = true` and both values; otherwise one-device mode |
 | `js/cloud.js` | Club mode: login, profile/role, accounts, cache per user, push/pull loop |
 | `js/sync.js` | Pure merge/diff rules and the `ACCESS` table per role |
 | `supabase/schema.sql` | Tables, roles, row-level security, signup trigger, `ping()`. Re-runnable |
@@ -62,6 +62,7 @@ In Claude cloud sessions Playwright and Chromium are preinstalled globally (`NOD
 
 ## The club's Supabase project
 
+- **Login is switched off for now** (`CLUB_MODE = false` in `js/config.js`): the user asked for every screen to be open without signing in until they add login later. Don't switch it on unless they ask. The club-mode browser tests force it on in their own copy of the config.
 - URL `https://avyjgyztpxrvkpwrvbql.supabase.co` (ref `avyjgyztpxrvkpwrvbql`), set in `js/config.js`.
 - In cloud sessions the host must be on the environment's allowed list (the personal environment `royal-club` has it). `cdn.jsdelivr.net` may be blocked there; `npm run e2e:real` can serve a local `@supabase/supabase-js@2.45.4` instead.
 - Check setup status with the `supabase-setup` skill before telling the user something is or isn't configured. The publishable key cannot change the schema: running `schema.sql` and changing auth settings happen in the Supabase dashboard (by the user) unless they give a personal access token for the Management API.

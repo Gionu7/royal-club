@@ -1,5 +1,5 @@
 // Connection to the club database (Supabase): login, accounts and syncing.
-// When js/config.js is empty, none of this runs and the app works on one device.
+// When js/config.js has CLUB_MODE off (or no database), none of this runs and the app works on one device.
 import * as cfg from './config.js';
 import { KINDS, ACCESS, diff, hasChanges, markSent, merge, emptySnapshot } from './sync.js';
 
@@ -15,8 +15,9 @@ let pushTimer = null;
 let pullTimer = null;
 let busy = null;
 
+/** Club mode is on when config.js switches it on and names a database. */
 export function isEnabled() {
-  return Boolean(cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY);
+  return cfg.CLUB_MODE === true && Boolean(cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY);
 }
 
 export function getProfile() {
