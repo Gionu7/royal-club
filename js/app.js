@@ -1108,9 +1108,15 @@ function flashHtml() {
 // ---------------------------------------------------------------- sheets
 
 function pickerList() {
-  const list = S.searchActivities(S.allActivities(state), { q: ui.pickQ, category: ui.pickCat, age: ui.pickAge });
-  if (!list.length) return `<p class="muted">${esc(t('noResults'))}</p>`;
-  return `<ul class="list pick">${list
+  const any = S.searchActivities(S.allActivities(state), { q: ui.pickQ, category: ui.pickCat });
+  const list = ui.pickAge ? S.searchActivities(any, { age: ui.pickAge }) : any;
+  // Say when the age filter hides something, so a game for other ages can still be found.
+  const hidden = any.length - list.length;
+  const more = hidden
+    ? `<p class="pick-hidden"><span class="muted">${esc(t('hiddenByAge', { n: hidden, age: `U${ui.pickAge}` }))}</span> <button class="btn sm" data-act="pick-all-ages">${esc(t('showAllAges'))}</button></p>`
+    : '';
+  if (!list.length) return `<p class="muted">${esc(t('noResults'))}</p>${more}`;
+  return `${more}<ul class="list pick">${list
     .map(
       (a) => `<li class="pick-row">
       <span class="dot bg-${a.category}"></span>
@@ -1607,6 +1613,10 @@ const actions = {
   },
   'pick-cat'(el) {
     ui.pickCat = el.dataset.c;
+    render();
+  },
+  'pick-all-ages'() {
+    ui.pickAge = null;
     render();
   },
   pick(el) {

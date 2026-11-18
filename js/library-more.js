@@ -9,6 +9,34 @@ const pair = (x1, y1, x2, y2, c = 'blue') => [
 ];
 
 export const MORE = [
+  // ---------------- every age ----------------
+  {
+    id: 'team-prayer',
+    category: 'arrival',
+    ages: [5, 12],
+    duration: 1,
+    skills: ['teamwork', 'listening'],
+    title: { en: 'Team prayer', ro: 'Rugăciunea echipei' },
+    summary: {
+      en: 'A 30-second prayer together in a circle before training starts.',
+      ro: 'O rugăciune de 30 de secunde, împreună, în cerc, înainte de antrenament.',
+    },
+    players: { en: 'Whole group', ro: 'Toată grupa' },
+    space: { en: 'A circle around the coach', ro: 'Un cerc în jurul antrenorului' },
+    equipment: { en: 'None', ro: 'Nimic' },
+    setup: { en: 'Everyone in a circle, arms on each other’s shoulders, balls on the ground behind them.', ro: 'Toți în cerc, cu mâinile pe umerii colegilor și mingile pe jos, în spate.' },
+    howTo: {
+      en: 'When everyone is quiet, say each line and the children repeat it: “Lord, thank you for today and for the friends we play with. Help us to train with joy, to respect each other and to be good teammates. Keep us safe from injury and bless our families. Amen.” Or say the Lord’s Prayer together. Finish with “Royal Club!” and go straight into the first game.',
+      ro: 'Când s-a făcut liniște, spuneți fiecare rând, iar copiii îl repetă: „Doamne, Îți mulțumim pentru ziua de azi și pentru prietenii cu care jucăm. Ajută-ne să ne antrenăm cu bucurie, să ne respectăm unii pe alții și să fim buni coechipieri. Ferește-ne de accidentări și binecuvântează-ne familiile. Amin.” Sau spuneți împreună „Tatăl nostru”. Terminați cu „Royal Club!” și treceți direct la primul joc.',
+    },
+    coaching: [
+      { en: 'Wait for quiet before you start', ro: 'Așteptați să se facă liniște înainte să începeți' },
+      { en: 'Calm and short: about 30 seconds', ro: 'Calm și scurt: cam 30 de secunde' },
+      { en: 'Children who don’t pray stand with the group in silence', ro: 'Copiii care nu se roagă stau în cerc, în liniște, alături de ceilalți' },
+      { en: 'Let a different child lead it each week', ro: 'În fiecare săptămână, un alt copil poate conduce rugăciunea' },
+    ],
+  },
+
   // ---------------- youngest ----------------
   {
     id: 'follow-leader',
@@ -1111,21 +1139,21 @@ export const MORE = [
   {
     id: '6v6-keepers',
     category: 'game',
-    ages: [8, 12],
+    ages: [7, 12],
     duration: 20,
     skills: ['game', 'team shape', 'switching play', 'goalkeeping'],
-    title: { en: '6 v 6 with keepers', ro: '6 contra 6 cu portari' },
+    title: { en: '6 v 6 match with two goals', ro: 'Meci 6 contra 6 cu două porți' },
     summary: {
-      en: 'A 20-minute match in two halves of 9 minutes: five outfield players and a keeper per team, using the whole width.',
-      ro: 'Meci de 20 de minute, în două reprize de 9 minute: cinci jucători de câmp și un portar pe echipă, cu joc pe toată lățimea.',
+      en: 'A 20-minute match on two goals with keepers, in two halves of 9 minutes: five outfield players and a keeper per team.',
+      ro: 'Meci de 20 de minute pe două porți, cu portari, în două reprize de 9 minute: cinci jucători de câmp și un portar pe echipă.',
     },
     players: { en: '12 (5 + keeper per team), subs roll on', ro: '12 (5 + portar pe echipă), rezervele intră prin rotație' },
-    space: { en: '45 × 30 m', ro: '45 × 30 m' },
-    equipment: { en: '2 goals (5 × 2 m), bibs, cones for the pitch, spare balls behind each goal', ro: '2 porți (5 × 2 m), veste, conuri pentru teren, mingi de rezervă în spatele fiecărei porți' },
-    setup: { en: 'A 45 × 30 m pitch with a goal at each end and a halfway line. Each team lines up 2-1-2 in front of its keeper.', ro: 'Un teren de 45 × 30 m, cu câte o poartă la fiecare capăt și linie de mijloc. Fiecare echipă se așază 2-1-2 în fața portarului.' },
+    space: { en: '45 × 30 m (U7–U8: 35 × 25 m)', ro: '45 × 30 m (U7–U8: 35 × 25 m)' },
+    equipment: { en: '2 goals (5 × 2 m; 3 × 2 m for U7–U8), bibs, cones for the pitch, spare balls behind each goal', ro: '2 porți (5 × 2 m; 3 × 2 m la U7–U8), veste, conuri pentru teren, mingi de rezervă în spatele fiecărei porți' },
+    setup: { en: 'A pitch with a goal at each end and a halfway line. Each team lines up 2-1-2 in front of its keeper; with U7–U8, just ask them to spread out.', ro: 'Un teren cu câte o poartă la fiecare capăt și linie de mijloc. Fiecare echipă se așază 2-1-2 în fața portarului; la U7–U8 ajunge să le cereți să se răsfire.' },
     howTo: {
-      en: 'Two halves of 9 minutes with a 2-minute water break. Kick-ins or dribble-ins from the side, no offside. The keeper restarts with a throw or a pass along the ground; the other team waits in its own half until the first pass is received. At half-time change the keeper and swap positions, so every child plays in defence and in attack. With more than 12 children, bring one player on every 3 minutes.',
-      ro: 'Două reprize de 9 minute, cu pauză de apă de 2 minute. Repunerea din lateral se face cu piciorul, prin pasă sau dribling, fără ofsaid. Portarul repune cu mâna sau cu o pasă pe jos; echipa adversă așteaptă în propria jumătate până la prima pasă primită. La pauză schimbați portarul și posturile, ca fiecare copil să joace și în apărare, și în atac. Dacă sunt mai mult de 12 copii, intră câte un jucător nou la fiecare 3 minute.',
+      en: 'Two halves of 9 minutes with a 2-minute water break. Kick-ins or dribble-ins from the side, no offside. The keeper restarts with a throw or a pass along the ground; the other team waits in its own half until the first pass is received. At half-time change the keeper and swap positions, so every child plays in defence and in attack; with U7–U8, change the keeper every 3 minutes. With more than 12 children, bring one player on every 3 minutes.',
+      ro: 'Două reprize de 9 minute, cu pauză de apă de 2 minute. Repunerea din lateral se face cu piciorul, prin pasă sau dribling, fără ofsaid. Portarul repune cu mâna sau cu o pasă pe jos; echipa adversă așteaptă în propria jumătate până la prima pasă primită. La pauză schimbați portarul și posturile, ca fiecare copil să joace și în apărare, și în atac; la U7–U8 schimbați portarul la fiecare 3 minute. Dacă sunt mai mult de 12 copii, intră câte un jucător nou la fiecare 3 minute.',
     },
     coaching: [
       { en: 'Make the pitch big: one player wide on each side', ro: 'Faceți terenul mare: câte un jucător pe fiecare margine' },
@@ -1134,7 +1162,7 @@ export const MORE = [
       { en: 'Keeper: start attacks fast with a throw to a free player', ro: 'Portarul: pornește atacul repede, cu o aruncare la un jucător liber' },
       { en: 'Freeze rarely: 2–3 times per half, 30 seconds each', ro: 'Opriți jocul rar: de 2–3 ori pe repriză, câte 30 de secunde' },
     ],
-    easier: { en: 'A smaller pitch (35 × 25 m) and a joker for the team with the ball.', ro: 'Teren mai mic (35 × 25 m) și un joker pentru echipa care are mingea.' },
+    easier: { en: 'A joker for the team with the ball, and halves of 7 minutes.', ro: 'Un joker pentru echipa care are mingea și reprize de 7 minute.' },
     harder: { en: 'A goal counts double if the ball went through a wide player first.', ro: 'Golul valorează dublu dacă mingea a trecut înainte pe la un jucător de pe margine.' },
     calls: [
       { en: 'Make it wide!', ro: 'Lărgiți terenul!' },

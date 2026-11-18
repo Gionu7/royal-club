@@ -47,7 +47,14 @@ const { BASE, outDir, singleDevice, finish } = require('./helpers.cjs');
     await page.click('.tpl:has-text("U10")');
     console.log('u10 total', await page.textContent('.big-num'));
     await page.click('[data-act="open-picker"]');
-    console.log('picker age', await page.$eval('#pick-age', (e) => e.value), 'rows', await page.$$eval('.pick-row', (x) => x.length));
+    const ageRows = await page.$$eval('.pick-row', (x) => x.length);
+    console.log('picker age', await page.$eval('#pick-age', (e) => e.value), 'rows', ageRows);
+    // The age filter says what it hides, and one tap shows every age.
+    if (!(await page.$('.pick-hidden'))) throw new Error('no "more for other ages" line under an age filter');
+    await page.click('[data-act="pick-all-ages"]');
+    const allRows = await page.$$eval('.pick-row', (x) => x.length);
+    if (allRows <= ageRows || (await page.$('.pick-hidden'))) throw new Error(`show all ages: ${ageRows} → ${allRows} rows`);
+    console.log('picker all ages rows', allRows);
     await page.click('.sheet-head button');
   });
 

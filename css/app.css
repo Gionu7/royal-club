@@ -1881,6 +1881,15 @@ body.in-run .main {
   gap: 12px;
   padding: 10px 12px;
 }
+.pick-hidden {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+}
 body.sheet-open {
   overflow: hidden;
 }
