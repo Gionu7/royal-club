@@ -6,12 +6,12 @@ It runs in the browser on a phone, tablet or laptop and works offline once opene
 
 It runs in one of two modes:
 
-- **On one device** (default): no login, everything stays in that browser.
-- **Club mode**: one shared database for the whole club, with accounts the admin hands out. See [Club accounts](#club-accounts).
+- **On one device** (the current setting): no login, every screen open, everything stays in that browser.
+- **Club mode**: one shared database for the whole club, with accounts the admin hands out. See [Club accounts](#club-accounts). It is switched off for now: set `CLUB_MODE = true` in `js/config.js` to turn the login on. The club's database is already connected.
 
 ## What it does
 
-**Library.** 30 activities for U5 to U12: every game from the U7 plan PDF in this repo (*Plan de antrenament – academia de fotbal U7*), more for the youngest groups, and drills and games for U8–U12 (rondo 4 v 1, 1 v 1 to two gates, 2 v 1 to goal, give-and-go shooting, passing square, end-zone game, possession 4 v 4 + 2, 5 v 5 with keepers, dynamic warm-up, stretch and review). Each one has an age range, setup, how it works, coaching points, easier/harder versions, equipment, a pitch diagram and, where it helps, coach calls ("Sole!", "Green!", "Bunny hops!"). Filter by age group and category (arrival, warm-up, technique, game, finish, break) or search in either language. You can add your own activities, or copy a built-in one and edit it.
+**Library.** 43 activities for U5 to U12, with at least two in every category for each age group: every game from the U7 plan PDF in this repo (*Plan de antrenament – academia de fotbal U7*), more for the youngest groups (drop-kick-catch, fox tails, bowling, 2 v 2 mini matches, champions' circle, balloon breaths), and drills and games for U8–U12 (foot tennis, pass and move, rondo 4 v 1, 1 v 1 to two gates, receive and turn, 2 v 1 to goal, give-and-go shooting, slalom, pass and shoot, passing square, end-zone game, possession 4 v 4 + 2, 5 v 5 and 6 v 6 with keepers, dynamic warm-up, penalty finale, stretch and review, a water break with one question). Each one has an age range, setup, how it works, coaching points, easier/harder versions, equipment, a pitch diagram and, where it helps, coach calls ("Sole!", "Green!", "Bunny hops!"). Filter by age group and category (arrival, warm-up, technique, game, finish, break) or search in either language. You can add your own activities, or copy a built-in one and edit it.
 
 **Session builder.** Pick activities from the library, set the minutes for each block, reorder them, add water breaks and a note per block. The builder shows the running clock (0:00–0:05, 0:05–0:08 …), the total against your planned length and a colour bar of the session. The 60-minute U7 plan from the PDF is ready on first launch, and four templates (U5–U6 45 min, U7 60 min, U9–U10 75 min, U11–U12 90 min) give you a ready session for each age group. When you add activities to a session, the picker shows the ones that suit that session's age group first; you can switch it to any age.
 
@@ -21,7 +21,7 @@ It runs in one of two modes:
 
 1. **Who is here?** Tap the children who turned up (or add a new child on the spot).
 2. **One screen per activity**, with **Back / Next** at the bottom:
-   - a big timer: countdown, stopwatch, or **rounds** (e.g. 3 × 60 s with 30 s rest) that beeps and vibrates at each change; *+1 min*; a full-screen **Big timer** to show the kids
+   - a big timer: countdown, stopwatch, or **rounds** (e.g. 3 × 60 s with 30 s rest) that beeps and vibrates at each change; *+1 min*; a full-screen **Big timer** to show the kids. It starts by itself when each activity begins (switch this off in *Settings*)
    - **coach calls** you can tap to flash full-screen in colour, or let the app pick one at random
    - coaching points, how it works, the diagram, setup, easier/harder
    - what's up next, plus coaching reminders for the session's age group (U5–U8 or U9–U12)
@@ -71,7 +71,7 @@ You do this once. It takes about 15 minutes.
    - turn **Confirm email** off, so username accounts work and new accounts can sign in straight away;
    - leave **Allow new users to sign up** on. The app creates accounts this way. Anyone who signs up on their own gets *Waiting for approval* and sees nothing until you give them a role.
 6. **Connect the app.** Already done for the club's project (`avyjgyztpxrvkpwrvbql`): its Project URL and **publishable / anon** key are in `js/config.js`. Both are safe to make public. Never put the `service_role` / secret key anywhere in the app. For a different project, change those two lines, or set the GitHub repository variables `SUPABASE_URL` and `SUPABASE_ANON_KEY` (**Settings → Secrets and variables → Actions → Variables**), which the Pages workflow writes into `js/config.js` when it deploys. To run on one device only, empty both values.
-7. **Deploy and sign in.** Merge into `main` (GitHub Pages must be on, see below), open the site and sign in with your email and password.
+7. **Deploy and sign in.** Set `CLUB_MODE = true` in `js/config.js`, merge into `main` (GitHub Pages must be on, see below), open the site and sign in with your email and password.
 8. **Bring your existing data.** On the phone where you already used the app, sign in as admin and open **Settings → Upload this device's data to the club**. A backup file works too: **Settings → Restore**.
 9. **Hand out accounts** in **Settings → Manage accounts**.
 
@@ -109,7 +109,7 @@ js/diagram-helpers.js helpers for writing diagrams
 js/diagram.js         draws the pitch diagrams from data
 js/timer.js           countdown / stopwatch / rounds maths, beeps and vibration
 js/store.js           plans, players, notes, sessions and backups (localStorage)
-js/config.js          club database settings (empty = one-device mode)
+js/config.js          club mode switch (CLUB_MODE) and club database settings
 js/cloud.js           club mode: login, accounts, syncing with Supabase
 js/sync.js            merge rules between the phone and the club database
 supabase/schema.sql   tables, roles and access rules for Supabase

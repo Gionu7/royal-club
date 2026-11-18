@@ -1,5 +1,5 @@
 // Checks the app against the real club project in js/config.js with the real
-// supabase-js library: the login screen appears and a wrong password is refused.
+// supabase-js library, with club mode switched on whatever CLUB_MODE says: the login screen appears and a wrong password is refused.
 // With E2E_LOGIN and E2E_PASSWORD set, it also signs in and checks the Today screen.
 //
 // The browser normally loads supabase-js from cdn.jsdelivr.net. Where that host
@@ -24,6 +24,9 @@ const { BASE, outDir, finish } = require('./helpers.cjs');
   }
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 400, height: 860 } });
+  // Login may be switched off in js/config.js (CLUB_MODE); switch it on here to reach the real project.
+  const realConfig = fs.readFileSync(path.join(__dirname, '../../js/config.js'), 'utf8').replace(/^export const CLUB_MODE = .*$/m, 'export const CLUB_MODE = true;');
+  await ctx.route('**/js/config.js', (r) => r.fulfill({ contentType: 'application/javascript', body: realConfig }));
   if (umdDir) {
     const esm = `${fs.readFileSync(path.join(umdDir, 'supabase.js'), 'utf8')}\nexport const createClient = globalThis.supabase.createClient;`;
     await ctx.route('**/cdn.jsdelivr.net/npm/@supabase/supabase-js@*/**', (r) => {

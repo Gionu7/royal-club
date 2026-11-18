@@ -160,7 +160,8 @@ export function createClient(url, key, opts = {}) {
   };
 }`;
 
-const CONFIG = `export const SUPABASE_URL = 'https://fake.supabase.test';
+const CONFIG = `export const CLUB_MODE = true;
+export const SUPABASE_URL = 'https://fake.supabase.test';
 export const SUPABASE_ANON_KEY = 'anon';
 export const USERNAME_DOMAIN = 'cont.royalclub.ro';
 export const SUPABASE_LIB = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';`;

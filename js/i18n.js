@@ -204,7 +204,7 @@ export const STRINGS = {
     language: 'Language',
     sound: 'Beep when time is up',
     vibrate: 'Vibrate when time is up',
-    autoStart: 'Start the timer automatically on Next',
+    autoStart: 'Start the timer by itself when each activity begins',
     backup: 'Backup',
     backupHint: 'Everything lives on this device. Save a backup file now and then, or move your data to another phone.',
     exportFile: 'Download backup',
@@ -495,7 +495,7 @@ export const STRINGS = {
     language: 'Limba',
     sound: 'Semnal sonor la final de timp',
     vibrate: 'Vibrație la final de timp',
-    autoStart: 'Pornește ceasul automat la Următoarea',
+    autoStart: 'Ceasul pornește singur la fiecare activitate',
     backup: 'Copie de siguranță',
     backupHint: 'Totul e salvat pe acest dispozitiv. Fă din când în când o copie sau mută datele pe alt telefon.',
     exportFile: 'Descarcă copia',
@@ -630,6 +630,6 @@ export function txList(list) {
 }
 
 export const LANGS = [
-  { id: 'en', label: 'English' },
   { id: 'ro', label: 'Română' },
+  { id: 'en', label: 'English' },
 ];

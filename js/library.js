@@ -791,6 +791,8 @@ const SKILL_RO = {
   'build-up play': 'construcție',
   goalkeeping: 'portar',
   reflection: 'reflecție',
+  'team shape': 'așezarea în teren',
+  breathing: 'respirație',
 };
 
 /** A skill tag as {en, ro}; tags typed by a coach pass through unchanged. */
